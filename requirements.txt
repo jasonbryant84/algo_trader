@@ -1,0 +1,6 @@
+Django==4.0.1
+python-binance==1.0.15
+django-environ==0.8.1
+tensorflow==2.8.0
+pandas==1.4.1
+numpy==1.22.3
