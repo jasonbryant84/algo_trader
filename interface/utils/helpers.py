@@ -96,7 +96,7 @@ class BinanceHelper(ExchangeHelper):
 
         # Up/Down
         self.crypto_pair.df.insert(0, "was_up_0", self.crypto_pair.df["diff_0"] > 0)
-        self.crypto_pair.df = self.crypto_pair.df.astype({ "was_up_0": int })
+        self.crypto_pair.df = self.crypto_pair.df.astype({ "was_up_0": np.int8 })
 
         # Human readable datetime
         self.crypto_pair.df.insert(0, "close_time_dt_0", pd.to_datetime(self.crypto_pair.df["close_time_0"], unit='ms'))
@@ -131,7 +131,7 @@ class BinanceHelper(ExchangeHelper):
 
 
     def generate_features(self):
-        lookback_length = 100
+        lookback_length = 200
 
         # Model features
         self.features = self.crypto_pair.df.copy()
@@ -158,7 +158,28 @@ class BinanceHelper(ExchangeHelper):
 
         # Dropping the last "lookback_length" rows as they will have NaN values due to shifting
         self.features = self.features.iloc[:(-1 * lookback_length)]
+        
+        # Adding datetime info
+        year = self.features["close_time_dt_0"].apply(lambda x: x.year)
+        year.name = "year"
+        month = self.features["close_time_dt_0"].apply(lambda x: x.month)
+        month.name = "month"
+        day = self.features["close_time_dt_0"].apply(lambda x: x.day)
+        day.name = "day"
+        hour = self.features["close_time_dt_0"].apply(lambda x: x.hour)
+        hour.name = "hour"
+        minute = self.features["close_time_dt_0"].apply(lambda x: x.minute)
+        minute.name = "minute"
+        day_of_week = self.features["close_time_dt_0"].apply(lambda x: x.weekday() + 1)
+        day_of_week.name = "day_of_week"
+
+        date_info_added_to_df = [self.features, year, month, day, hour, minute, day_of_week]
+        self.features = pd.concat(date_info_added_to_df, axis=1)
+
         print('self.features\n', self.features)
+
+        # import pdb
+        # pdb.set_trace()
 
     def __str__(self):
         return f"name: {self.name} kline_intervals: {self.klines_intervals} klines_type: {self.klines_type}"
