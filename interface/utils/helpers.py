@@ -44,6 +44,7 @@ class BinanceHelper(ExchangeHelper):
         self.klines_type = HistoricalKlinesType.SPOT if klines_type != 'futures' else HistoricalKlinesType.FUTURES
 
         self.datasets = {}
+        self.full_dataset = None
 
     def convertIntervals(self, interval):
         if interval == '1m':
@@ -110,7 +111,7 @@ class BinanceHelper(ExchangeHelper):
         # taapi_interface = TaapiInterface()
         # request = taapi_interface.rsi(self.pair, interval) would need to pass interval into function
 
-        print("--- %ss sseconds to clean data ---" % round((time.time() - start_time), 1))
+        print(f"--- {round((time.time() - start_time), 1)}s sseconds to clean data ---")
         return df
 
 
@@ -222,10 +223,13 @@ class BinanceHelper(ExchangeHelper):
                     "dataset": dataset
                 })
 
-            
+
+                temp_dataset = [self.full_dataset, dataset]
+                self.full_dataset = pd.concat(temp_dataset, axis=0)
+
             self.datasets[pair]["sets"] = sets
         
-        return self.datasets
+        return [self.full_dataset, self.datasets]
 
     def __str__(self):
         return f"name: {self.name} klines_type: {self.klines_type}"
