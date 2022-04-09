@@ -12,11 +12,6 @@ from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 
 from .taapi import TaapiInterface
 
-class CryptoPair:
-    def __init__(self):
-        self.name = 'Crypto Name'
-        self.df = None
-
 class ExchangeHelper:
     def __init__(self):
         self.name = 'Exchange Helper'
@@ -29,12 +24,11 @@ class BinanceHelper(ExchangeHelper):
     name = 'Binance Helper'
     client = Client(settings.BINANCE_API_KEY, settings.BINANCE_SECRET)
     
-    def __init__(self, pair, interval, klines_type='spot', pairs_of_interest=None):
-        self.pair = pair
-        self.pairs_of_interest = pairs_of_interest or [pair]
-        self.pair_sans_slash = pair.replace('/', '')
-        self.interval = interval
-        self.intervals = [
+    def __init__(self, pairs_of_interest, intervals_of_interest, klines_type='spot'):
+        self.pairs_of_interest = pairs_of_interest
+        self.intervals_of_interest = intervals_of_interest
+
+        self.possible_intervals = [
             Client.KLINE_INTERVAL_1MINUTE,
             Client.KLINE_INTERVAL_3MINUTE,
             Client.KLINE_INTERVAL_5MINUTE,
@@ -47,39 +41,30 @@ class BinanceHelper(ExchangeHelper):
             Client.KLINE_INTERVAL_1WEEK,
             Client.KLINE_INTERVAL_1MONTH
         ]
-        self.klines_intervals = self.convertIntervals()[0]
-        self.klines_start_str = self.convertIntervals()[2]
         self.klines_type = HistoricalKlinesType.SPOT if klines_type != 'futures' else HistoricalKlinesType.FUTURES
 
-        self.rsi = []
-        self.macd = []
-        self.ema5 = []
-        self.ema20 = []
-        self.bbands = []
-
-        self.crypto_pair = None
         self.datasets = {}
 
-    def convertIntervals(self):
-        if self.interval == '1m':
+    def convertIntervals(self, interval):
+        if interval == '1m':
             return [Client.KLINE_INTERVAL_1MINUTE, '1 minute', '4 days ago UTC']
-        if self.interval == '3m':
+        if interval == '3m':
             return [Client.KLINE_INTERVAL_3MINUTE, '3 minutes', '6 days ago UTC']
-        if self.interval == '5m':
+        if interval == '5m':
             return [Client.KLINE_INTERVAL_5MINUTE, '5 minutes', '10 days ago UTC']
-        elif self.interval == '15m':
+        elif interval == '15m':
             return [Client.KLINE_INTERVAL_15MINUTE, '15 minutes', '2 months ago UTC']
-        elif self.interval == '30m':
+        elif interval == '30m':
             return [Client.KLINE_INTERVAL_30MINUTE, '30 minutes', '4 months ago UTC']
-        elif self.interval == '1h':
+        elif interval == '1h':
             return [Client.KLINE_INTERVAL_1HOUR, '1 hour', '6 months ago UTC']
-        elif self.interval == '4h':
+        elif interval == '4h':
             return [Client.KLINE_INTERVAL_4HOUR, '4 hours', '2 years ago UTC']
-        elif self.interval == '1d':
+        elif interval == '1d':
             return [Client.KLINE_INTERVAL_1DAY, '1 day', '5 years ago UTC']
-        elif self.interval == '1w':
+        elif interval == '1w':
             return [Client.KLINE_INTERVAL_1WEEK, '1 week', '9 years ago UTC']
-        elif self.interval == '1M':
+        elif interval == '1M':
             return [Client.KLINE_INTERVAL_1MONTH, '1 month', '12 years ago UTC']
         else:
             return [Client.KLINE_INTERVAL_1DAY, '1 day (default)', '1 day ago UTC']
@@ -87,8 +72,7 @@ class BinanceHelper(ExchangeHelper):
     def clean_data(self, klines):
         start_time = time.time()
 
-        self.crypto_pair = CryptoPair()
-        self.crypto_pair.df = pd.DataFrame(
+        df = pd.DataFrame(
             klines,
             columns=['open_time_0', 'open_0', 'high_0', 'low_0', 'close_0', 'volume_0', 'close_time_0', 'quote_asset_vol_0', 'num_trades_0', 'taker_buy_base_asset_vol_0', 'taker_buy_quote_asset_vol_0', 'ignore_0'] # list of OHLCV
         )
@@ -103,46 +87,48 @@ class BinanceHelper(ExchangeHelper):
             "taker_buy_base_asset_vol_0": np.float64,
             "taker_buy_quote_asset_vol_0": np.float64,
         }
-        self.crypto_pair.df = self.crypto_pair.df.astype(new_dtypes)
+        df = df.astype(new_dtypes)
 
         # Calculate Open/Close Difference
-        self.crypto_pair.df.insert(0, "diff_0", self.crypto_pair.df["close_0"] - self.crypto_pair.df["open_0"])
+        df.insert(0, "diff_0", df["close_0"] - df["open_0"])
 
         # Up/Down
-        self.crypto_pair.df.insert(0, "was_up_0", self.crypto_pair.df["diff_0"] > 0)
-        self.crypto_pair.df = self.crypto_pair.df.astype({ "was_up_0": np.int8 })
+        df.insert(0, "was_up_0", df["diff_0"] > 0)
+        df = df.astype({ "was_up_0": np.int8 })
 
         # Human readable datetime
-        self.crypto_pair.df.insert(0, "close_time_dt_0", pd.to_datetime(self.crypto_pair.df["close_time_0"], unit='ms'))
+        df.insert(0, "close_time_dt_0", pd.to_datetime(df["close_time_0"], unit='ms'))
 
         # Drop Open and Close times and Ignore column (maybe this is important info from Binance)
-        del self.crypto_pair.df["open_time_0"]
-        del self.crypto_pair.df["close_time_0"]
-        del self.crypto_pair.df["ignore_0"]
+        del df["open_time_0"]
+        del df["close_time_0"]
+        del df["ignore_0"]
 
         # Reverse row order
-        self.crypto_pair.df = self.crypto_pair.df.iloc[::-1]
+        df = df.iloc[::-1]
 
         # taapi_interface = TaapiInterface()
-        # request = taapi_interface.rsi(self.pair, self.interval)
+        # request = taapi_interface.rsi(self.pair, interval) would need to pass interval into function
 
         print("--- %ss sseconds to clean data ---" % round((time.time() - start_time), 1))
-        return self.crypto_pair.df
+        return df
 
 
-    def generate_klines(self, pair_str):
+    def generate_klines(self, pair_str, interval):
         start_time = time.time()
+        interval_data = self.convertIntervals(interval)
+
         klines = self.client.get_historical_klines(
             symbol=pair_str,
-            interval=self.klines_intervals,
-            start_str=self.klines_start_str,
+            interval=interval_data[0],
+            start_str=interval_data[2],
             end_str=None,
             klines_type=self.klines_type
         )
 
         self.datasets[pair_str] = {"sets": []}
 
-        print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data ---")
+        print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} ---")
         return klines
 
 
@@ -179,7 +165,7 @@ class BinanceHelper(ExchangeHelper):
 
         return dataset
 
-    def generate_time_info_for_dataset(self, dataset):
+    def generate_time_info_for_dataset(self, dataset, interval_of_interest):
         # Adding datetime info
         year = dataset["close_time_dt_0"].apply(lambda x: x.year)
         year.name = "year"
@@ -197,8 +183,8 @@ class BinanceHelper(ExchangeHelper):
         date_info_added_to_df = [dataset, year, month, day, hour, minute, day_of_week]
         dataset = pd.concat(date_info_added_to_df, axis=1)
 
-        for interval in self.intervals:
-            interval_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if interval == self.interval else 0)
+        for interval in self.possible_intervals:
+            interval_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if interval == interval_of_interest else 0)
             interval_series_column.name = f"is_{interval}"
 
             interval_added_to_df = [dataset, interval_series_column]
@@ -207,9 +193,9 @@ class BinanceHelper(ExchangeHelper):
         return dataset
             
 
-    def generate_pairs_dataset(self, dataset):
+    def generate_pairs_dataset(self, dataset, curr_pair_of_interest):
         for pair in self.pairs_of_interest:
-            pair_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if pair == self.pair else 0)
+            pair_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if pair == curr_pair_of_interest else 0)
             pair_series_column.name = f"is_{pair.replace('/', '_')}"
 
             pair_added_to_df = [dataset, pair_series_column]
@@ -217,24 +203,29 @@ class BinanceHelper(ExchangeHelper):
 
         return dataset
 
-    def generate_dataset(self):    
-        for pair in self.pairs_of_interest:   
-            pair = pair.replace('/', '')
+    def generate_datasets(self):    
+        for pair in self.pairs_of_interest:
+            sets = []
 
-            klines = self.generate_klines(pair)
-            cleaned_data = self.clean_data(klines)
+            for interval in self.intervals_of_interest:   
+                pair = pair.replace('/', '')
 
-            dataset = self.generate_concatinated_columns_for_dataset(cleaned_data, candle_lookback_length = 200)    
-            dataset = self.generate_pairs_dataset(dataset)
-            dataset = self.generate_time_info_for_dataset(dataset)
+                klines = self.generate_klines(pair, interval)
+                cleaned_data = self.clean_data(klines)
 
-            self.datasets[pair]["sets"].append({
-                "interval": self.interval,
-                "dataset": dataset
-            })
+                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data, candle_lookback_length = 200)    
+                dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair)
+                dataset = self.generate_time_info_for_dataset(dataset, interval)
 
-        # import pdb
-        # pdb.set_trace()
+                sets.append({
+                    "interval": interval,
+                    "dataset": dataset
+                })
+
+            
+            self.datasets[pair]["sets"] = sets
+        
+        return self.datasets
 
     def __str__(self):
-        return f"name: {self.name} kline_intervals: {self.klines_intervals} klines_type: {self.klines_type}"
+        return f"name: {self.name} klines_type: {self.klines_type}"

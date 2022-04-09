@@ -18,16 +18,18 @@ def no_request():
     start_time = time.time()
 
     pairs_of_interest = ["BTC/USDT", "ETH/USDT", "BNB/USDT", "XRP/USDT", "SOL/USDT", "ADA/USDT", "LUNA/USDT", "AVAX/USDT", "DOT/USDT", "DOGE/USDT", "MATIC/USDT", "LTC/USDT", "TRX/USDT"]
+    pairs_of_interest = ["BTC/USDT", "ETH/USDT", "BNB/USDT", "XRP/USDT"]
+
+    intervals_of_interest=["5m", "15m", "4h"]
 
     helper = BinanceHelper(
-        pair="ETH/USDT",
-        interval="5m",
-        pairs_of_interest=pairs_of_interest
+        pairs_of_interest=pairs_of_interest,
+        intervals_of_interest=intervals_of_interest,
     )
-    helper.generate_dataset()
+    datasets = helper.generate_datasets()
 
+    print(datasets)
     print("--- %ss Roundtrip ---" % round((time.time() - start_time), 1) )
-    print(helper.datasets)
 
 if __name__ == "__main__":
     no_request()
