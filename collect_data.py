@@ -8,13 +8,12 @@ from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 
 from interface.utils.helpers import BinanceHelper
 
+from utils.helpers import testing
+
 BINANCE_API_KEY = os.environ['BINANCE_API_KEY']
 BINANCE_SECRET = os.environ['BINANCE_SECRET']
 
-
 # Be careful for unfinished candles when making prediction ie most recent row is a currently active candlestick
-def write_csv(full_dataset):
-    full_dataset.to_csv('./csv/dataset.csv')
 
 def build_datasets():
     start_time = time.time()
@@ -30,7 +29,9 @@ def build_datasets():
     )
     [full_dataset, datasets] = helper.generate_datasets()
 
-    write_csv(full_dataset)
+    full_dataset.to_csv('./csv/dataset.csv')
+
+    testing()
     print('full_dataset', full_dataset)
     print("--- %ss Roundtrip ---" % round((time.time() - start_time), 1) )
 
