@@ -1,6 +1,6 @@
 # https://www.bmc.com/blogs/deep-learning-neural-network-tutorial-keras/
 
-import csv, json, os, time, django
+import sys, csv, json, os, time, django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
 django.setup()
 
@@ -13,8 +13,8 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
-def setup_features_and_labels():
-    data = pd.read_csv('./csv/dataset.csv', delimiter=',')
+def setup_features_and_labels(filename):
+    data = pd.read_csv(f"./csv/{filename}", delimiter=',')
     n_cols_in_data = data.shape[1]
 
     # skip over index, datetime, was_up (label - classification), diff(label - regression)
@@ -46,28 +46,41 @@ def setup_training_and_test_data(labels, features):
 
 def setup_nn(X_train, y_train, n_rows):
     model = Sequential()
-    model.add(Dense(8, activation='relu', input_shape=(n_cols,)))
-    model.add(Dense(8, activation='relu'))
-    model.add(Dense(1, activation='sigmoid'))
+    model.add(Dense(n_cols, activation='relu', input_shape=(n_cols,)))
+
+    model.add(Dense(2*n_cols, activation='relu'))
+    model.add(Dense(2*n_cols, activation='relu'))
+    model.add(Dense(2*n_cols, activation='relu'))
+
+    model.add(Dense(1, activation='sigmoid')) # Classification activation function
     model.compile(
         loss='binary_crossentropy',
         optimizer='sgd',
         metrics=['accuracy']
     )
-    model.fit(X_train, y_train, epochs=50, batch_size=1, verbose=1)
+    model.fit(X_train, y_train, epochs=5, batch_size=1, verbose=1)
 
     return model
 
 def predict(model, X_test, y_test):
+    print('\n\n--- Predictions ---')
     y_pred = model.predict(X_test)
     score = model.evaluate(X_test, y_test, verbose=1)
-    print(f"score: {score}")
+    print(f"score: {score}\n")
 
 if __name__ == "__main__":
     start_time = time.time()
+        
+    filename = "dataset.csv"
+    if len(sys.argv) == 3:
+        pair = sys.argv[1].replace('/','_')
+        interval = sys.argv[2]
+        filename = f"dataset_{pair}_{interval}.csv"
 
-    [labels, features, n_rows, n_cols] = setup_features_and_labels()
+    [labels, features, n_rows, n_cols] = setup_features_and_labels(filename)
     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+    
+    layers = [n_cols]
     model = setup_nn(X_train, y_train, n_rows)
     predict(model, X_test, y_test)
 

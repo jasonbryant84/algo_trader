@@ -1,4 +1,4 @@
-import csv, json, os, time, django
+import sys, csv, json, os, time, django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
 django.setup()
 
@@ -8,20 +8,18 @@ from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 
 from interface.utils.helpers import BinanceHelper
 
-from utils.helpers import testing
-
 BINANCE_API_KEY = os.environ['BINANCE_API_KEY']
 BINANCE_SECRET = os.environ['BINANCE_SECRET']
 
 # Be careful for unfinished candles when making prediction ie most recent row is a currently active candlestick
 
-def build_datasets():
+def build_datasets(pair, interval):
     start_time = time.time()
 
-    pairs_of_interest = ["BTC/USDT", "ETH/USDT", "BNB/USDT", "XRP/USDT", "SOL/USDT", "ADA/USDT", "LUNA/USDT", "AVAX/USDT", "DOT/USDT", "DOGE/USDT", "MATIC/USDT", "LTC/USDT", "TRX/USDT"]
-
-    pairs_of_interest = ["BTC/USDT", "ETH/USDT", "BNB/USDT", "XRP/USDT"]
-    intervals_of_interest=["5m"]
+    # Alter the following 2 arrays if desired
+    # Entering a pair and interval in command line will take precedent
+    pairs_of_interest = [pair] if pair else ["BTC/USDT"]
+    intervals_of_interest = [interval] if interval else ["5m"]
 
     helper = BinanceHelper(
         pairs_of_interest=pairs_of_interest,
@@ -29,11 +27,22 @@ def build_datasets():
     )
     [full_dataset, datasets] = helper.generate_datasets()
 
-    full_dataset.to_csv('./csv/dataset.csv')
+    pairs_array = [pair.replace('/', '_') for pair in pairs_of_interest]
+    full_dataset.to_csv(
+        f"./csv/dataset_{'_'.join(pairs_array)}_{'_'.join(intervals_of_interest)}.csv"
+    )
 
-    testing()
     print('full_dataset', full_dataset)
     print("--- %ss Roundtrip ---" % round((time.time() - start_time), 1) )
 
 if __name__ == "__main__":
-    build_datasets()
+    pair = None
+    interval = None
+
+    if len(sys.argv) == 2:
+        pair = sys.argv[1]
+    elif len(sys.argv) == 3:
+        pair = sys.argv[1]
+        interval = sys.argv[2]
+
+    build_datasets(pair, interval)
