@@ -5,11 +5,13 @@ from django.conf import settings
 
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from binance import Client
 from binance.enums import HistoricalKlinesType
 from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 
+import talib as ta
 from .taapi import TaapiInterface
 
 class ExchangeHelper:
@@ -70,7 +72,33 @@ class BinanceHelper(ExchangeHelper):
         else:
             return [Client.KLINE_INTERVAL_1DAY, '1 day (default)', '1 day ago UTC']
 
-    def clean_data(self, klines):
+    def generate_indicators_for_dataset(self, df):
+        df.insert(0, "ADX_20_0", ta.ADX(df['high_0'], df['low_0'], df['close_0'], timeperiod=20))
+        df.insert(0, "SMA_5_0", ta.SMA(df['close_0'], 5))
+        df.insert(0, "SMA_20_0", ta.SMA(df['close_0'], 20))
+        df.insert(0, "EMA_20_0", ta.EMA(df['close_0'], 20))
+        df.insert(0, "rsi_5_0", ta.RSI(df['close_0'], 5))
+        df.insert(0, "rsi_14_0", ta.RSI(df['close_0'], 14))
+
+        dif, dea, bar = ta.MACD(df['close_0'].values, fastperiod=12, slowperiod=26, signalperiod=9)
+        df.insert(0, "macd_dif_0", dif)
+        df.insert(0, "macd_dea_0", dea)
+        df.insert(0, "macd_bar_0", bar)
+        
+        up, mid, low = ta.BBANDS(df['close_0'], timeperiod = 20)
+        df.insert(0, "low_band_20_0", low)
+        df.insert(0, "mid_band_20_0", mid)
+        df.insert(0, "up_band_20_0", up)
+
+        # df[['close_0', 'SMA_5_0', 'EMA_20_0', 'up_band_20_0', 'mid_band_20_0', 'low_band_20_0']].head(100).plot(figsize=(24,12))
+        # plt.show()
+
+        # df[['macd_dif_0', 'macd_dea_0', 'macd_bar_0']].head(100).plot(figsize=(24,12))
+        # plt.show()
+        
+        return df
+
+    def clean_data(self, pair, klines):
         start_time = time.time()
 
         df = pd.DataFrame(
@@ -93,7 +121,9 @@ class BinanceHelper(ExchangeHelper):
         # Calculate Open/Close Difference
         df.insert(0, "diff_0", df["close_0"] - df["open_0"])
 
-        # Up/Down
+        df = self.generate_indicators_for_dataset(df)
+
+        # Up/Down Label
         df.insert(0, "was_up_0", df["diff_0"] > 0)
         df = df.astype({ "was_up_0": np.int8 })
 
@@ -107,9 +137,6 @@ class BinanceHelper(ExchangeHelper):
 
         # Reverse row order
         df = df.iloc[::-1]
-
-        # taapi_interface = TaapiInterface()
-        # request = taapi_interface.rsi(self.pair, interval) would need to pass interval into function
 
         print(f"--- {round((time.time() - start_time), 1)}s sseconds to clean data ---")
         return df
@@ -130,6 +157,7 @@ class BinanceHelper(ExchangeHelper):
         self.datasets[pair_str] = {"sets": []}
 
         print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} ---")
+        
         return klines
 
 
@@ -212,9 +240,9 @@ class BinanceHelper(ExchangeHelper):
                 pair = pair.replace('/', '')
 
                 klines = self.generate_klines(pair, interval)
-                cleaned_data = self.clean_data(klines)
+                cleaned_data = self.clean_data(pair, klines)
 
-                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data, candle_lookback_length = 200)    
+                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data, candle_lookback_length = 100)    
                 dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 

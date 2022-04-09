@@ -1,4 +1,5 @@
 # https://www.bmc.com/blogs/deep-learning-neural-network-tutorial-keras/
+# https://towardsdatascience.com/technical-analysis-of-stocks-using-ta-lib-305614165051
 
 import sys, csv, json, os, time, django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
@@ -18,7 +19,7 @@ def setup_features_and_labels(filename):
     n_cols_in_data = data.shape[1]
 
     # skip over index, datetime, was_up (label - classification), diff(label - regression)
-    features = data.iloc[:,4 : n_cols_in_data]
+    features = data.iloc[:,3 : n_cols_in_data]
     features = features[:-1]
 
     labels = data["was_up_0"]
