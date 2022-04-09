@@ -29,6 +29,7 @@ class BinanceHelper(ExchangeHelper):
     def __init__(self, pairs_of_interest, intervals_of_interest, klines_type='spot'):
         self.pairs_of_interest = pairs_of_interest
         self.intervals_of_interest = intervals_of_interest
+        self.candle_lookback_length = 50
 
         self.possible_intervals = [
             Client.KLINE_INTERVAL_1MINUTE,
@@ -96,7 +97,7 @@ class BinanceHelper(ExchangeHelper):
         # df[['macd_dif_0', 'macd_dea_0', 'macd_bar_0']].head(100).plot(figsize=(24,12))
         # plt.show()
         
-        return df
+        return df.dropna()
 
     def clean_data(self, pair, klines):
         start_time = time.time()
@@ -165,7 +166,7 @@ class BinanceHelper(ExchangeHelper):
     # Generating Dataset Logic                 #
     ############################################
 
-    def generate_concatinated_columns_for_dataset(self, cleaned_data, candle_lookback_length):
+    def generate_concatinated_columns_for_dataset(self, cleaned_data):
         # Model features
         dataset = cleaned_data.copy()
 
@@ -175,7 +176,8 @@ class BinanceHelper(ExchangeHelper):
         del df_with_dropped_cols["was_up_0"]
         del df_with_dropped_cols["diff_0"]
 
-        for i in range(1, candle_lookback_length):
+        for i in range(1, self.candle_lookback_length
+):
             prevIStr = f"_{i-1}"
             prevSuffixOffset = -1 * len(prevIStr)
 
@@ -190,7 +192,8 @@ class BinanceHelper(ExchangeHelper):
             dataset = pd.concat(updated_df, axis=1)
 
         # Dropping the last "candle_lookback_length" rows as they will have NaN values due to shifting
-        dataset = dataset.iloc[:(-1 * candle_lookback_length)]
+        dataset = dataset.iloc[:(-1 * self.candle_lookback_length
+)]
 
         return dataset
 
@@ -242,7 +245,7 @@ class BinanceHelper(ExchangeHelper):
                 klines = self.generate_klines(pair, interval)
                 cleaned_data = self.clean_data(pair, klines)
 
-                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data, candle_lookback_length = 100)    
+                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)    
                 dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 

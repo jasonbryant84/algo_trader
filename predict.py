@@ -49,9 +49,9 @@ def setup_nn(X_train, y_train, n_rows):
     model = Sequential()
     model.add(Dense(n_cols, activation='relu', input_shape=(n_cols,)))
 
-    model.add(Dense(2*n_cols, activation='relu'))
-    model.add(Dense(2*n_cols, activation='relu'))
-    model.add(Dense(2*n_cols, activation='relu'))
+    model.add(Dense(n_cols, activation='relu'))
+    model.add(Dense(n_cols, activation='relu'))
+    model.add(Dense(n_cols, activation='relu'))
 
     model.add(Dense(1, activation='sigmoid')) # Classification activation function
     model.compile(
