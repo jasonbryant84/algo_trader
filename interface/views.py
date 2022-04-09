@@ -61,7 +61,7 @@ def binance(request):
     print('\n\nhelper', helper)
     helper.generate_klines()
     helper.clean_data()
-    helper.generate_features()
+    helper.generate_dataset()
     
     # print('klines', klines)
 

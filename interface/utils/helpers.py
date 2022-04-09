@@ -29,15 +29,28 @@ class BinanceHelper(ExchangeHelper):
     name = 'Binance Helper'
     client = Client(settings.BINANCE_API_KEY, settings.BINANCE_SECRET)
     
-    def __init__(self, pair, interval, klines_type='spot'):
+    def __init__(self, pair, interval, klines_type='spot', pairs_of_interest=None):
         self.pair = pair
+        self.pairs_of_interest = pairs_of_interest or [pair]
         self.pair_sans_slash = pair.replace('/', '')
         self.interval = interval
+        self.intervals = [
+            Client.KLINE_INTERVAL_1MINUTE,
+            Client.KLINE_INTERVAL_3MINUTE,
+            Client.KLINE_INTERVAL_5MINUTE,
+            Client.KLINE_INTERVAL_15MINUTE,
+            Client.KLINE_INTERVAL_30MINUTE,
+            Client.KLINE_INTERVAL_30MINUTE,
+            Client.KLINE_INTERVAL_1HOUR,
+            Client.KLINE_INTERVAL_4HOUR,
+            Client.KLINE_INTERVAL_1DAY,
+            Client.KLINE_INTERVAL_1WEEK,
+            Client.KLINE_INTERVAL_1MONTH
+        ]
         self.klines_intervals = self.convertIntervals()[0]
         self.klines_start_str = self.convertIntervals()[2]
         self.klines_type = HistoricalKlinesType.SPOT if klines_type != 'futures' else HistoricalKlinesType.FUTURES
 
-        self.klines = []
         self.rsi = []
         self.macd = []
         self.ema5 = []
@@ -45,11 +58,11 @@ class BinanceHelper(ExchangeHelper):
         self.bbands = []
 
         self.crypto_pair = None
-        self.features = None
+        self.datasets = {}
 
     def convertIntervals(self):
         if self.interval == '1m':
-            return [Client.KLINE_INTERVAL_1MINUTE, '1 minute', '2 days ago UTC']
+            return [Client.KLINE_INTERVAL_1MINUTE, '1 minute', '4 days ago UTC']
         if self.interval == '3m':
             return [Client.KLINE_INTERVAL_3MINUTE, '3 minutes', '6 days ago UTC']
         if self.interval == '5m':
@@ -71,11 +84,12 @@ class BinanceHelper(ExchangeHelper):
         else:
             return [Client.KLINE_INTERVAL_1DAY, '1 day (default)', '1 day ago UTC']
 
-    def clean_data(self):
+    def clean_data(self, klines):
         start_time = time.time()
+
         self.crypto_pair = CryptoPair()
         self.crypto_pair.df = pd.DataFrame(
-            self.klines,
+            klines,
             columns=['open_time_0', 'open_0', 'high_0', 'low_0', 'close_0', 'volume_0', 'close_time_0', 'quote_asset_vol_0', 'num_trades_0', 'taker_buy_base_asset_vol_0', 'taker_buy_quote_asset_vol_0', 'ignore_0'] # list of OHLCV
         )
 
@@ -112,37 +126,41 @@ class BinanceHelper(ExchangeHelper):
         # taapi_interface = TaapiInterface()
         # request = taapi_interface.rsi(self.pair, self.interval)
 
-        print("--- %s seconds to clean data ---" % (time.time() - start_time))
+        print("--- %ss sseconds to clean data ---" % round((time.time() - start_time), 1))
         return self.crypto_pair.df
 
 
-    def generate_klines(self):
+    def generate_klines(self, pair_str):
         start_time = time.time()
-        self.klines = self.client.get_historical_klines(
-            symbol=self.pair_sans_slash,
+        klines = self.client.get_historical_klines(
+            symbol=pair_str,
             interval=self.klines_intervals,
             start_str=self.klines_start_str,
             end_str=None,
             klines_type=self.klines_type
         )
 
-        print("--- %s seconds to retrieve Binance data ---" % (time.time() - start_time))
-        return self.klines
+        self.datasets[pair_str] = {"sets": []}
+
+        print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data ---")
+        return klines
 
 
-    def generate_features(self):
-        lookback_length = 200
+    ############################################
+    # Generating Dataset Logic                 #
+    ############################################
 
+    def generate_concatinated_columns_for_dataset(self, cleaned_data, candle_lookback_length):
         # Model features
-        self.features = self.crypto_pair.df.copy()
+        dataset = cleaned_data.copy()
 
         # Setup past related features by copying initial data and dropping unnecessary columns
-        df_with_dropped_cols = self.crypto_pair.df.copy()
+        df_with_dropped_cols = cleaned_data.copy()
         del df_with_dropped_cols["close_time_dt_0"]
         del df_with_dropped_cols["was_up_0"]
         del df_with_dropped_cols["diff_0"]
 
-        for i in range(1, lookback_length):
+        for i in range(1, candle_lookback_length):
             prevIStr = f"_{i-1}"
             prevSuffixOffset = -1 * len(prevIStr)
 
@@ -153,30 +171,67 @@ class BinanceHelper(ExchangeHelper):
             df_with_dropped_cols = df_with_dropped_cols.shift(periods=-1, axis="rows")
 
             # Concatenate
-            updated_df = [self.features, df_with_dropped_cols]
-            self.features = pd.concat(updated_df, axis=1)
+            updated_df = [dataset, df_with_dropped_cols]
+            dataset = pd.concat(updated_df, axis=1)
 
-        # Dropping the last "lookback_length" rows as they will have NaN values due to shifting
-        self.features = self.features.iloc[:(-1 * lookback_length)]
-        
+        # Dropping the last "candle_lookback_length" rows as they will have NaN values due to shifting
+        dataset = dataset.iloc[:(-1 * candle_lookback_length)]
+
+        return dataset
+
+    def generate_time_info_for_dataset(self, dataset):
         # Adding datetime info
-        year = self.features["close_time_dt_0"].apply(lambda x: x.year)
+        year = dataset["close_time_dt_0"].apply(lambda x: x.year)
         year.name = "year"
-        month = self.features["close_time_dt_0"].apply(lambda x: x.month)
+        month = dataset["close_time_dt_0"].apply(lambda x: x.month)
         month.name = "month"
-        day = self.features["close_time_dt_0"].apply(lambda x: x.day)
+        day = dataset["close_time_dt_0"].apply(lambda x: x.day)
         day.name = "day"
-        hour = self.features["close_time_dt_0"].apply(lambda x: x.hour)
+        hour = dataset["close_time_dt_0"].apply(lambda x: x.hour)
         hour.name = "hour"
-        minute = self.features["close_time_dt_0"].apply(lambda x: x.minute)
+        minute = dataset["close_time_dt_0"].apply(lambda x: x.minute)
         minute.name = "minute"
-        day_of_week = self.features["close_time_dt_0"].apply(lambda x: x.weekday() + 1)
+        day_of_week = dataset["close_time_dt_0"].apply(lambda x: x.weekday() + 1)
         day_of_week.name = "day_of_week"
 
-        date_info_added_to_df = [self.features, year, month, day, hour, minute, day_of_week]
-        self.features = pd.concat(date_info_added_to_df, axis=1)
+        date_info_added_to_df = [dataset, year, month, day, hour, minute, day_of_week]
+        dataset = pd.concat(date_info_added_to_df, axis=1)
 
-        print('self.features\n', self.features)
+        for interval in self.intervals:
+            interval_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if interval == self.interval else 0)
+            interval_series_column.name = f"is_{interval}"
+
+            interval_added_to_df = [dataset, interval_series_column]
+            dataset = pd.concat(interval_added_to_df, axis=1)
+
+        return dataset
+            
+
+    def generate_pairs_dataset(self, dataset):
+        for pair in self.pairs_of_interest:
+            pair_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if pair == self.pair else 0)
+            pair_series_column.name = f"is_{pair.replace('/', '_')}"
+
+            pair_added_to_df = [dataset, pair_series_column]
+            dataset = pd.concat(pair_added_to_df, axis=1)
+
+        return dataset
+
+    def generate_dataset(self):    
+        for pair in self.pairs_of_interest:   
+            pair = pair.replace('/', '')
+
+            klines = self.generate_klines(pair)
+            cleaned_data = self.clean_data(klines)
+
+            dataset = self.generate_concatinated_columns_for_dataset(cleaned_data, candle_lookback_length = 200)    
+            dataset = self.generate_pairs_dataset(dataset)
+            dataset = self.generate_time_info_for_dataset(dataset)
+
+            self.datasets[pair]["sets"].append({
+                "interval": self.interval,
+                "dataset": dataset
+            })
 
         # import pdb
         # pdb.set_trace()
