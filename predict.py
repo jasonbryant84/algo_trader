@@ -1,3 +1,5 @@
+# https://www.bmc.com/blogs/deep-learning-neural-network-tutorial-keras/
+
 import csv, json, os, time, django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
 django.setup()
@@ -25,7 +27,7 @@ def setup_features_and_labels():
 
     n_rows = features.shape[0]
     n_cols = features.shape[1]
-    
+
     return [labels, features, n_rows, n_cols]
 
 def setup_training_and_test_data(labels, features):
@@ -52,15 +54,21 @@ def setup_nn(X_train, y_train, n_rows):
         optimizer='sgd',
         metrics=['accuracy']
     )
+    model.fit(X_train, y_train, epochs=50, batch_size=1, verbose=1)
 
-    print('----------\n', X_train.shape, y_train.shape)
-    model.fit(X_train, y_train, epochs=8, batch_size=1, verbose=1)
+    return model
+
+def predict(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    score = model.evaluate(X_test, y_test, verbose=1)
+    print(f"score: {score}")
 
 if __name__ == "__main__":
     start_time = time.time()
 
     [labels, features, n_rows, n_cols] = setup_features_and_labels()
     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
-    setup_nn(X_train, y_train, n_rows)
+    model = setup_nn(X_train, y_train, n_rows)
+    predict(model, X_test, y_test)
 
     print("--- %ss prediction roundtrip ---" % round((time.time() - start_time), 1) )
