@@ -50,8 +50,14 @@ class BinanceHelper(ExchangeHelper):
     def convertIntervals(self):
         if self.interval == '1m':
             return [Client.KLINE_INTERVAL_1MINUTE, '1 minute', '2 days ago UTC']
+        if self.interval == '3m':
+            return [Client.KLINE_INTERVAL_3MINUTE, '3 minutes', '6 days ago UTC']
+        if self.interval == '5m':
+            return [Client.KLINE_INTERVAL_5MINUTE, '5 minutes', '10 days ago UTC']
         elif self.interval == '15m':
             return [Client.KLINE_INTERVAL_15MINUTE, '15 minutes', '2 months ago UTC']
+        elif self.interval == '30m':
+            return [Client.KLINE_INTERVAL_30MINUTE, '30 minutes', '4 months ago UTC']
         elif self.interval == '1h':
             return [Client.KLINE_INTERVAL_1HOUR, '1 hour', '6 months ago UTC']
         elif self.interval == '4h':
