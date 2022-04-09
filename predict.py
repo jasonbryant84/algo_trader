@@ -59,7 +59,7 @@ def setup_nn(X_train, y_train, n_rows):
         optimizer='sgd',
         metrics=['accuracy']
     )
-    model.fit(X_train, y_train, epochs=5, batch_size=1, verbose=1)
+    model.fit(X_train, y_train, epochs=8, batch_size=1, verbose=1)
 
     return model
 

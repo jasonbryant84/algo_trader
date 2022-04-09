@@ -55,7 +55,7 @@ class BinanceHelper(ExchangeHelper):
         if interval == '3m':
             return [Client.KLINE_INTERVAL_3MINUTE, '3 minutes', '6 days ago UTC']
         if interval == '5m':
-            return [Client.KLINE_INTERVAL_5MINUTE, '5 minutes', '10 days ago UTC']
+            return [Client.KLINE_INTERVAL_5MINUTE, '5 minutes', '1 month ago UTC']
         elif interval == '15m':
             return [Client.KLINE_INTERVAL_15MINUTE, '15 minutes', '2 months ago UTC']
         elif interval == '30m':
