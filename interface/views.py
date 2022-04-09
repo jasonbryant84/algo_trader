@@ -57,9 +57,11 @@ def binance(request):
 
     # # fetch klines
     # list of OHLCV values (Open time, Open, High, Low, Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy base asset volume, Taker buy quote asset volume, Ignore)
-    helper = BinanceHelper(pair, interval, limit)
-    print('helper', helper)
+    helper = BinanceHelper(pair, interval)
+    print('\n\nhelper', helper)
     helper.generate_klines()
+    helper.clean_data()
+    helper.generate_features()
     
     # print('klines', klines)
 
