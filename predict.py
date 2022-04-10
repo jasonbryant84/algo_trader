@@ -11,7 +11,8 @@ from pprint import pprint
 import tensorflow as tf
 from keras.models import Sequential
 import pandas as pd
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
+from keras import backend as K
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -47,13 +48,16 @@ def setup_training_and_test_data(labels, features):
 
     return [X_train, X_test, y_train, y_test]
 
-def setup_nn(X_train, y_train, n_rows, n_epochs=3):
+def setup_nn(X_train, y_train, n_rows, n_epochs = 3, learning_rate = 0.01):
     model = Sequential()
     model.add(Dense(n_cols, activation='relu', input_shape=(n_cols,)))
 
     model.add(Dense(n_cols, activation='relu'))
+    # model.add(Dropout(0.1))
     model.add(Dense(n_cols, activation='relu'))
+    # model.add(Dropout(0.1))
     model.add(Dense(n_cols, activation='relu'))
+    # model.add(Dropout(0.1))
 
     model.add(Dense(1, activation='sigmoid')) # Classification activation function
     model.compile(
@@ -61,6 +65,7 @@ def setup_nn(X_train, y_train, n_rows, n_epochs=3):
         optimizer='sgd',
         metrics=['accuracy']
     )
+    K.set_value(model.optimizer.learning_rate, learning_rate)
     model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
 
     return model
@@ -69,6 +74,12 @@ def threshold_testing(y_test, y_pred, thresholds):
     # NOTA BENE: Limit false positives (fp)! ie false buy signals
     tests = []
 
+    n_positives = np.count_nonzero(y_test == 1)
+    n_negatives = np.count_nonzero(y_test == 0)
+
+    max_accuracy = { "value": 0 }
+    lowest_fp = { "value": y_test.shape[0] }
+
     for threshold in thresholds:
         temp_pred = y_pred
         temp_pred = np.where(temp_pred > threshold, 1, 0)
@@ -76,10 +87,19 @@ def threshold_testing(y_test, y_pred, thresholds):
         tn, fp, fn, tp = confusion_matrix(y_test, temp_pred).ravel()
         n_predictions = tn + fp + fn + tp # could just be rows but whatever for now
         n_correct = tn + tp
+        accuracy = n_correct / n_predictions
+
+        if accuracy > max_accuracy["value"]:
+            max_accuracy["value"] = accuracy
+            max_accuracy["threshold"] = threshold
+
+        if fp < lowest_fp["value"]:
+            lowest_fp["value"] = fp
+            lowest_fp["threshold"] = threshold
 
         obj = {
             "threshold": threshold,
-            "accuracy": n_correct / n_predictions,
+            "accuracy": accuracy,
             "tn": tn, 
             "fp": fp,
             "fn": fn, 
@@ -88,7 +108,7 @@ def threshold_testing(y_test, y_pred, thresholds):
 
         tests.append(obj)
 
-    return tests
+    return tests, max_accuracy, lowest_fp, n_positives, n_negatives
 
 def predict(model, X_test, y_test):
     print(f"\n--- Keras Evaluate - Predictions (threshold = 0.5 by default) ---") # for evaluate method below
@@ -99,19 +119,21 @@ def predict(model, X_test, y_test):
     confusion_matrices = threshold_testing(
         y_test,
         y_pred,
-        thresholds = np.arange(start=0.5, stop=0.9, step=0.01)
+        thresholds = np.arange(start=0.5, stop=0.75, step=0.01)
     )
 
     pprint(confusion_matrices)
-    # print(confusion_matrices)
 
 if __name__ == "__main__":
+    # TODO: add prompts if there are no parameters passed
+
     start_time = time.time()
         
     # Default parameter values if none supplied on command line
     pair = None
     interval = None
     n_epochs = 1
+    learning_rate = 0.01
 
     # Default derived value (below)
     filename = "dataset.csv"
@@ -122,12 +144,14 @@ if __name__ == "__main__":
         filename = f"dataset_{pair}_{interval}.csv"
     if len(sys.argv) >= 4:
         n_epochs = int(sys.argv[3])
+    if len(sys.argv) >= 5:
+        learning_rate = float(sys.argv[4])
     
     [labels, features, n_rows, n_cols] = setup_features_and_labels(filename)
     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
     
     layers = [n_cols]
-    model = setup_nn(X_train, y_train, n_rows, n_epochs)
+    model = setup_nn(X_train, y_train, n_rows, n_epochs, learning_rate)
     predict(model, X_test, y_test)
 
-    print("--- %ss prediction roundtrip ---" % round((time.time() - start_time), 1) )
+    print(f"--- {round((time.time() - start_time), 1)}s prediction roundtrip (pair: {pair} ---")

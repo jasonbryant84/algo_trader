@@ -36,6 +36,7 @@ def build_datasets(pair, interval):
     print("--- %ss Roundtrip ---" % round((time.time() - start_time), 1) )
 
 if __name__ == "__main__":
+    # TODO: add prompts if there are no parameters passed
     pair = None
     interval = None
 
