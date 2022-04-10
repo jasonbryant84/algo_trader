@@ -29,7 +29,7 @@ def build_datasets(pair, interval):
 
     pairs_array = [pair.replace('/', '_') for pair in pairs_of_interest]
     full_dataset.to_csv(
-        f"./csv/dataset_{'_'.join(pairs_array)}_{'_'.join(intervals_of_interest)}.csv"
+        f"./datasets/dataset_{'_'.join(pairs_array)}_{'_'.join(intervals_of_interest)}.csv"
     )
 
     print('full_dataset', full_dataset)
