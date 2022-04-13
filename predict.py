@@ -19,19 +19,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 
-def save(pair, model):
+def save(pair, filename_model, model):
     path = f"./models/{pair}"
     isExist = os.path.exists(path)
     if not isExist:
         os.makedirs(path)
-        
-     # Save model to JSON file
-    model_json = model.to_json()
-    with open(f"./models/{pair}/{filename_model}.json", "w") as json_file:
-        json_file.write(model_json)
-    # serialize weights to HDF5
-    model.save_weights(f"./models/{pair}/{filename_model}.h5")
-    print("Saved model to disk")
+    
+    model.save(f"./models/{pair}/{filename_model}")
 
 def setup_features_and_labels(pair, filename):
     data = pd.read_csv(f"./datasets/{pair}/{filename}", delimiter=',')
@@ -141,28 +135,36 @@ def predict(model, X_test, y_test):
 if __name__ == "__main__":
     # TODO: add prompts if there are no parameters passed
     # >>> python predict.py HBAR_USDT dataset_HBAR_USDT_5m_50candles_4-13-2022_4-4.csv 1 0.03
+    # or
+    # >>> python predict.py HBAR_USDT HBAR_USDT_5m_50candles_4-13-2022_4-4 load 
 
     start_time = time.time()
 
-    pair = sys.argv[1].replace("/", "_")
-    filename_dataset = sys.argv[2]
-    filename_model = filename_dataset.replace("dataset_", "").replace(".csv", "")
+    if sys.argv[3] != "load":
+        pair = sys.argv[1].replace("/", "_")
+        filename_dataset = sys.argv[2]
+        filename_model = filename_dataset.replace("dataset_", "").replace(".csv", "")
 
-    n_epochs = 1
-    learning_rate = 0.01
+        n_epochs = 1
+        learning_rate = 0.01
 
-    if len(sys.argv) >= 3:
-        n_epochs = int(sys.argv[3])
-    if len(sys.argv) >= 5:
-        learning_rate = float(sys.argv[4])
-    
-    [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, filename_dataset)
-    
-    [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
-    
-    model = setup_nn(X_train, y_train, n_rows, n_epochs, learning_rate, filename_model)
-    save(pair, model)
+        if len(sys.argv) >= 3:
+            n_epochs = int(sys.argv[3])
+        if len(sys.argv) >= 5:
+            learning_rate = float(sys.argv[4])
+        
+        [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, filename_dataset)
+        
+        [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+        
+        model = setup_nn(X_train, y_train, n_rows, n_epochs, learning_rate, filename_model)
+        save(pair, filename_model, model)
 
-    predict(model, X_test, y_test)
+        predict(model, X_test, y_test)
+    else:
+        pair = sys.argv[1]
+        filename_model = sys.argv[2]
+        path = f"./models/{pair}"
+        model = tf.keras.models.load_model(f"{path}/{filename_model}")
 
     print(f"--- {round((time.time() - start_time), 1)}s prediction roundtrip (pair: {pair} ---")
