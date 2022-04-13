@@ -20,7 +20,7 @@ def write_csvs(datasets, interfaceHelper):
         for curr_set in dataset_obj["sets"]:
             dataset = curr_set["dataset"]
             interval = curr_set["interval"]
-            path = f"./datasets/{pair}"
+            path = f"./datasets/{pair}/{interval}"
 
             isExist = os.path.exists(path)
             if not isExist:
@@ -41,14 +41,14 @@ def build_datasets(pair, interval):
 
     # Alter the following 2 arrays if desired
     # Entering a pair and interval in command line will take precedent
-    pairs_of_interest = [pair] if pair else ["ADA/USDT", "ALGO/USDT", "AVAX/USDT", "DOGE/USDT", "DOT/USDT", "HBAR/USDT", "LINK/USDT", "LUNA/USDT", "MANA/USDT", "SHIB/USDT", "THETA/USDT", "TRX/USDT"]
-    intervals_of_interest = [interval] if interval else ["5m", "15m"]
+    pairs_of_interest = [pair] if pair else ["LINK/USDT", "LUNA/USDT", "SHIB/USDT", "THETA/USDT", "DOT/USDT", "AVAX/USDT", "ALGO/USDT"]
+    intervals_of_interest = [interval] if interval else ["5m", "15m", "30m", "1h", "4h", "1d", "1w"]
 
     helper = BinanceHelper(
         pairs_of_interest=pairs_of_interest,
         intervals_of_interest=intervals_of_interest,
     )
-    
+
     [full_dataset, datasets] = helper.generate_datasets()
 
     write_csvs(datasets, helper)

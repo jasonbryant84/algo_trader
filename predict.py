@@ -2,7 +2,7 @@
 # https://towardsdatascience.com/technical-analysis-of-stocks-using-ta-lib-305614165051
 
 
-import sys, csv, json, os, time, django
+import sys, csv, json, glob, os, time, django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
 django.setup()
 
@@ -27,8 +27,8 @@ def save(pair, filename_model, model):
     
     model.save(f"./models/{pair}/{filename_model}")
 
-def setup_features_and_labels(pair, filename):
-    data = pd.read_csv(f"./datasets/{pair}/{filename}", delimiter=',')
+def setup_features_and_labels(pair, interval, filename):
+    data = pd.read_csv(f"./datasets/{pair}/{interval}/{filename}", delimiter=',')
     n_cols_in_data = data.shape[1]
 
     # skip over index, datetime, was_up (label - classification), diff(label - regression)
@@ -56,7 +56,7 @@ def setup_training_and_test_data(labels, features):
 
     return [X_train, X_test, y_train, y_test]
 
-def setup_nn(X_train, y_train, n_rows, n_epochs = 3, learning_rate = 0.01, filename_model='model'):
+def setup_nn(X_train, y_train, n_rows, n_epochs = 3, learning_rate = 0.01):
     model = Sequential()
     model.add(Dense(n_cols, activation='relu', input_shape=(n_cols,)))
 
@@ -134,37 +134,52 @@ def predict(model, X_test, y_test):
 
 if __name__ == "__main__":
     # TODO: add prompts if there are no parameters passed
-    # >>> python predict.py HBAR_USDT dataset_HBAR_USDT_5m_50candles_4-13-2022_4-4.csv 1 0.03
+    # >>> python predict.py XRP/USDT 15m dataset_XRP_USDT_15m_50candles_4-13-2022_12-14.csv 1 0.03
     # or
-    # >>> python predict.py HBAR_USDT HBAR_USDT_5m_50candles_4-13-2022_4-4 load 
+    # >>> python predict.py XRP/USDT 15m load 
 
     start_time = time.time()
 
     if sys.argv[3] != "load":
         pair = sys.argv[1].replace("/", "_")
-        filename_dataset = sys.argv[2]
+        interval = sys.argv[2]
+        filename_dataset = sys.argv[3]
         filename_model = filename_dataset.replace("dataset_", "").replace(".csv", "")
+        # maybe add interval and let code find most recent from there with a wildcard
 
         n_epochs = 1
         learning_rate = 0.01
 
-        if len(sys.argv) >= 3:
-            n_epochs = int(sys.argv[3])
-        if len(sys.argv) >= 5:
-            learning_rate = float(sys.argv[4])
+        if len(sys.argv) >= 4:
+            n_epochs = int(sys.argv[4])
+        if len(sys.argv) >= 6:
+            learning_rate = float(sys.argv[5])
         
-        [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, filename_dataset)
-        
+        [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, filename_dataset)
+
         [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
         
-        model = setup_nn(X_train, y_train, n_rows, n_epochs, learning_rate, filename_model)
+        model = setup_nn(X_train, y_train, n_rows, n_epochs, learning_rate)
         save(pair, filename_model, model)
 
         predict(model, X_test, y_test)
     else:
-        pair = sys.argv[1]
-        filename_model = sys.argv[2]
-        path = f"./models/{pair}"
-        model = tf.keras.models.load_model(f"{path}/{filename_model}")
+        pair = sys.argv[1].replace("/", "_")
+        interval = sys.argv[2]
+        path_model = f"./models/{pair}/*"
 
-    print(f"--- {round((time.time() - start_time), 1)}s prediction roundtrip (pair: {pair} ---")
+        list_of_files = glob.glob(path_model)
+        latest_filepath = max(list_of_files, key=os.path.getctime)
+        model = tf.keras.models.load_model(latest_filepath)
+
+        if model:
+            print(f"--- Retrieve model {latest_filepath} ---")
+            # [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, filename_dataset)
+
+            # [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+
+            # model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
+
+            predict(model, X_test, y_test)
+
+    print(f"--- {round((time.time() - start_time), 1)}s prediction roundtrip (pair: {pair}) ---")
