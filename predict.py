@@ -19,8 +19,22 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 
-def setup_features_and_labels(filename):
-    data = pd.read_csv(f"./datasets/{filename}", delimiter=',')
+def save(pair, model):
+    path = f"./models/{pair}"
+    isExist = os.path.exists(path)
+    if not isExist:
+        os.makedirs(path)
+        
+     # Save model to JSON file
+    model_json = model.to_json()
+    with open(f"./models/{pair}/{filename_model}.json", "w") as json_file:
+        json_file.write(model_json)
+    # serialize weights to HDF5
+    model.save_weights(f"./models/{pair}/{filename_model}.h5")
+    print("Saved model to disk")
+
+def setup_features_and_labels(pair, filename):
+    data = pd.read_csv(f"./datasets/{pair}/{filename}", delimiter=',')
     n_cols_in_data = data.shape[1]
 
     # skip over index, datetime, was_up (label - classification), diff(label - regression)
@@ -67,14 +81,6 @@ def setup_nn(X_train, y_train, n_rows, n_epochs = 3, learning_rate = 0.01, filen
     )
     K.set_value(model.optimizer.learning_rate, learning_rate)
     model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
-
-    # Save model to JSON file
-    model_json = model.to_json()
-    with open(f"./models/{filename_model}.json", "w") as json_file:
-        json_file.write(model_json)
-    # serialize weights to HDF5
-    model.save_weights(f"./models/{filename_model}.h5")
-    print("Saved model to disk")
 
     return model
 
@@ -134,33 +140,29 @@ def predict(model, X_test, y_test):
 
 if __name__ == "__main__":
     # TODO: add prompts if there are no parameters passed
+    # >>> python predict.py HBAR_USDT dataset_HBAR_USDT_5m_50candles_4-13-2022_4-4.csv 1 0.03
 
     start_time = time.time()
-        
-    # Default parameter values if none supplied on command line
-    pair = None
-    interval = None
+
+    pair = sys.argv[1].replace("/", "_")
+    filename_dataset = sys.argv[2]
+    filename_model = filename_dataset.replace("dataset_", "").replace(".csv", "")
+
     n_epochs = 1
     learning_rate = 0.01
 
-    # Default derived value (below)
-    filename_dataset = "dataset.csv"
-
     if len(sys.argv) >= 3:
-        pair = sys.argv[1].replace('/','_')
-        interval = sys.argv[2]
-        filename_dataset = f"dataset_{pair}_{interval}.csv"
-        filename_model = f"model_{pair}_{interval}"
-    if len(sys.argv) >= 4:
         n_epochs = int(sys.argv[3])
     if len(sys.argv) >= 5:
         learning_rate = float(sys.argv[4])
     
-    [labels, features, n_rows, n_cols] = setup_features_and_labels(filename_dataset)
+    [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, filename_dataset)
+    
     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
     
-    layers = [n_cols]
     model = setup_nn(X_train, y_train, n_rows, n_epochs, learning_rate, filename_model)
+    save(pair, model)
+
     predict(model, X_test, y_test)
 
     print(f"--- {round((time.time() - start_time), 1)}s prediction roundtrip (pair: {pair} ---")

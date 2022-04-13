@@ -22,6 +22,7 @@ class ExchangeHelper:
     class Meta:
         abstract = True
 
+
 class BinanceHelper(ExchangeHelper):
     name = 'Binance Helper'
     client = Client(settings.BINANCE_API_KEY, settings.BINANCE_SECRET)
@@ -91,6 +92,7 @@ class BinanceHelper(ExchangeHelper):
         df.insert(0, "mid_band_20_0", mid)
         df.insert(0, "up_band_20_0", up)
 
+        # Visualize
         # df[['close_0', 'SMA_5_0', 'EMA_20_0', 'up_band_20_0', 'mid_band_20_0', 'low_band_20_0']].head(100).plot(figsize=(24,12))
         # plt.show()
 
@@ -99,7 +101,7 @@ class BinanceHelper(ExchangeHelper):
         
         return df.dropna()
 
-    def clean_data(self, pair, klines):
+    def clean_data(self, klines):
         start_time = time.time()
 
         df = pd.DataFrame(
@@ -143,7 +145,7 @@ class BinanceHelper(ExchangeHelper):
         return df
 
 
-    def generate_klines(self, pair_str, interval):
+    def generate_klines(self, pair_str, interval, pair_as_key):
         start_time = time.time()
         interval_data = self.convertIntervals(interval)
 
@@ -155,7 +157,7 @@ class BinanceHelper(ExchangeHelper):
             klines_type=self.klines_type
         )
 
-        self.datasets[pair_str] = {"sets": []}
+        self.datasets[pair_as_key] = {"sets": []}
 
         print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} ---")
         
@@ -176,8 +178,7 @@ class BinanceHelper(ExchangeHelper):
         del df_with_dropped_cols["was_up_0"]
         del df_with_dropped_cols["diff_0"]
 
-        for i in range(1, self.candle_lookback_length
-):
+        for i in range(1, self.candle_lookback_length):
             prevIStr = f"_{i-1}"
             prevSuffixOffset = -1 * len(prevIStr)
 
@@ -237,16 +238,17 @@ class BinanceHelper(ExchangeHelper):
 
     def generate_datasets(self):    
         for pair in self.pairs_of_interest:
-            sets = []
+            sets = [] 
+            pair_sans_slash = pair.replace('/', '')
+            pair_underscore = pair.replace('/', '_')
 
-            for interval in self.intervals_of_interest:   
-                pair = pair.replace('/', '')
+            for interval in self.intervals_of_interest:  
 
-                klines = self.generate_klines(pair, interval)
-                cleaned_data = self.clean_data(pair, klines)
+                klines = self.generate_klines(pair_sans_slash, interval, pair_as_key=pair_underscore)
+                cleaned_data = self.clean_data(klines)
 
                 dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)    
-                dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair)
+                dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 
                 sets.append({
@@ -258,7 +260,7 @@ class BinanceHelper(ExchangeHelper):
                 temp_dataset = [self.full_dataset, dataset]
                 self.full_dataset = pd.concat(temp_dataset, axis=0)
 
-            self.datasets[pair]["sets"] = sets
+            self.datasets[pair_underscore]["sets"] = sets
         
         return [self.full_dataset, self.datasets]
 

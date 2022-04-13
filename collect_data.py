@@ -13,26 +13,46 @@ BINANCE_SECRET = os.environ['BINANCE_SECRET']
 
 # Be careful for unfinished candles when making prediction ie most recent row is a currently active candlestick
 
+def write_csvs(datasets, interfaceHelper):
+    for pair in datasets:
+        dataset_obj = datasets[pair]
+        
+        for curr_set in dataset_obj["sets"]:
+            dataset = curr_set["dataset"]
+            interval = curr_set["interval"]
+            path = f"./datasets/{pair}"
+
+            isExist = os.path.exists(path)
+            if not isExist:
+                os.makedirs(path)
+
+            month = dataset.iloc[0]["month"]
+            day = dataset.iloc[0]["day"]
+            year = dataset.iloc[0]["year"]
+            hour = dataset.iloc[0]["hour"]
+            minute = dataset.iloc[0]["minute"]
+
+            dataset.to_csv(
+                f"{path}/dataset_{pair}_{interval}_{interfaceHelper.candle_lookback_length}candles_{month}-{day}-{year}_{hour}-{minute}.csv"
+            )
+
 def build_datasets(pair, interval):
     start_time = time.time()
 
     # Alter the following 2 arrays if desired
     # Entering a pair and interval in command line will take precedent
-    pairs_of_interest = [pair] if pair else ["BTC/USDT"]
-    intervals_of_interest = [interval] if interval else ["5m"]
+    pairs_of_interest = [pair] if pair else ["ADA/USDT", "ALGO/USDT", "AVAX/USDT", "DOGE/USDT", "DOT/USDT", "HBAR/USDT", "LINK/USDT", "LUNA/USDT", "MANA/USDT", "SHIB/USDT", "THETA/USDT", "TRX/USDT"]
+    intervals_of_interest = [interval] if interval else ["5m", "15m"]
 
     helper = BinanceHelper(
         pairs_of_interest=pairs_of_interest,
         intervals_of_interest=intervals_of_interest,
     )
+    
     [full_dataset, datasets] = helper.generate_datasets()
 
-    pairs_array = [pair.replace('/', '_') for pair in pairs_of_interest]
-    full_dataset.to_csv(
-        f"./datasets/dataset_{'_'.join(pairs_array)}_{'_'.join(intervals_of_interest)}.csv"
-    )
+    write_csvs(datasets, helper)
 
-    print('full_dataset', full_dataset)
     print("--- %ss Roundtrip ---" % round((time.time() - start_time), 1) )
 
 if __name__ == "__main__":
