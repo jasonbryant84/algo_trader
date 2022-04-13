@@ -136,7 +136,7 @@ if __name__ == "__main__":
     # TODO: add prompts if there are no parameters passed
     # >>> python predict.py XRP/USDT 15m dataset_XRP_USDT_15m_50candles_4-13-2022_12-14.csv 1 0.03
     # or
-    # >>> python predict.py XRP/USDT 15m load 
+    # >>> python predict.py XRP/USDT 15m load 1 0.03
 
     start_time = time.time()
 
@@ -160,26 +160,51 @@ if __name__ == "__main__":
         [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
         
         model = setup_nn(X_train, y_train, n_rows, n_epochs, learning_rate)
-        save(pair, filename_model, model)
 
         predict(model, X_test, y_test)
+        
+        save(pair, filename_model, model)
     else:
         pair = sys.argv[1].replace("/", "_")
         interval = sys.argv[2]
+        
         path_model = f"./models/{pair}/*"
-
         list_of_files = glob.glob(path_model)
         latest_filepath = max(list_of_files, key=os.path.getctime)
-        model = tf.keras.models.load_model(latest_filepath)
+        reconstructed_model = tf.keras.models.load_model(latest_filepath)
 
-        if model:
+        path_dataset = f"./datasets/{pair}/{interval}/*"
+        list_of_files = glob.glob(path_dataset)
+        latest_dataset = max(list_of_files, key=os.path.getctime)
+        latest_dataset = latest_dataset.split('/')[-1]
+
+        filename_model = latest_dataset.replace("dataset_", "").replace(".csv", "")
+
+        n_epochs = 1
+        learning_rate = 0.01
+
+        if len(sys.argv) >= 4:
+            n_epochs = int(sys.argv[4])
+        if len(sys.argv) >= 6:
+            learning_rate = float(sys.argv[5])
+
+        # import pdb
+        # pdb.set_trace()
+
+        if reconstructed_model:
+            new_model = reconstructed_model
             print(f"--- Retrieve model {latest_filepath} ---")
-            # [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, filename_dataset)
 
-            # [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+            [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, latest_dataset)
+            [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+            new_model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
 
-            # model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
+            # Let's check:
+            np.testing.assert_allclose(
+                new_model.predict(X_test), reconstructed_model.predict(X_test)
+            )
 
-            predict(model, X_test, y_test)
+            predict(new_model, X_test, y_test)
+            save(pair, filename_model, new_model)
 
     print(f"--- {round((time.time() - start_time), 1)}s prediction roundtrip (pair: {pair}) ---")
