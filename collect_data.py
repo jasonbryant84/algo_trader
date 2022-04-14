@@ -1,15 +1,8 @@
-import sys, csv, json, os, time, django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
-django.setup()
+import sys, csv, json, os, time
 
-from django.conf import settings
-from django.http import HttpResponse
 from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 
-from interface.utils.helpers import BinanceHelper
-
-BINANCE_API_KEY = os.environ['BINANCE_API_KEY']
-BINANCE_SECRET = os.environ['BINANCE_SECRET']
+from utils.helpers import BinanceHelper
 
 # Be careful for unfinished candles when making prediction ie most recent row is a currently active candlestick
 

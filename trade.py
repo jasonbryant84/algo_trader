@@ -1,6 +1,4 @@
-import sys, csv, json, glob, os, time, django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
-django.setup()
+import sys, csv, json, glob, os, time
 
 from pprint import pprint
 
@@ -15,7 +13,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 
-from interface.utils.helpers import BinanceHelper
+from utils.helpers import BinanceHelper
 
 def get_data(pair, interval, candle_lookback_length):
     helper = BinanceHelper(
@@ -30,7 +28,7 @@ def get_data(pair, interval, candle_lookback_length):
 
 if __name__ == "__main__":
     # TODO: add prompts if there are no parameters passed
-    # >>> python trade.py XRP/USDT 15m
+    # >>> python trade.py XRP/USDT 15m 50
 
     start_time = time.time()
 

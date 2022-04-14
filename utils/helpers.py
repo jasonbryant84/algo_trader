@@ -1,7 +1,6 @@
-import time, math
+import os, time, math
 
 from datetime import datetime
-from django.conf import settings
 
 import pandas as pd
 import numpy as np
@@ -24,8 +23,11 @@ class ExchangeHelper:
 
 
 class BinanceHelper(ExchangeHelper):
+    BINANCE_API_KEY = os.environ['BINANCE_API_KEY']
+    BINANCE_SECRET = os.environ['BINANCE_SECRET']
+
     name = 'Binance Helper'
-    client = Client(settings.BINANCE_API_KEY, settings.BINANCE_SECRET)
+    client = Client(BINANCE_API_KEY, BINANCE_SECRET)
     
     def __init__(self, pairs_of_interest, intervals_of_interest, candle_lookback_length, klines_type='spot'):
         self.pairs_of_interest = pairs_of_interest

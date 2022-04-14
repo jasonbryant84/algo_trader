@@ -2,9 +2,7 @@
 # https://towardsdatascience.com/technical-analysis-of-stocks-using-ta-lib-305614165051
 
 
-import sys, csv, json, glob, os, time, django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "algo_trader.settings")
-django.setup()
+import sys, csv, json, glob, os, time
 
 from pprint import pprint
 
