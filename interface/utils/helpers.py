@@ -1,4 +1,4 @@
-import time
+import time, math
 
 from datetime import datetime
 from django.conf import settings
@@ -27,10 +27,10 @@ class BinanceHelper(ExchangeHelper):
     name = 'Binance Helper'
     client = Client(settings.BINANCE_API_KEY, settings.BINANCE_SECRET)
     
-    def __init__(self, pairs_of_interest, intervals_of_interest, klines_type='spot'):
+    def __init__(self, pairs_of_interest, intervals_of_interest, candle_lookback_length, klines_type='spot'):
         self.pairs_of_interest = pairs_of_interest
         self.intervals_of_interest = intervals_of_interest
-        self.candle_lookback_length = 50
+        self.candle_lookback_length = int(candle_lookback_length)
 
         self.possible_intervals = [
             Client.KLINE_INTERVAL_1MINUTE,
@@ -51,28 +51,33 @@ class BinanceHelper(ExchangeHelper):
         self.full_dataset = None
 
     def convertIntervals(self, interval):
-        if interval == '1m':
-            return [Client.KLINE_INTERVAL_1MINUTE, '1 minute', '4 days ago UTC']
-        if interval == '3m':
-            return [Client.KLINE_INTERVAL_3MINUTE, '3 minutes', '6 days ago UTC']
-        if interval == '5m':
-            return [Client.KLINE_INTERVAL_5MINUTE, '5 minutes', '1 month ago UTC']
-        elif interval == '15m':
-            return [Client.KLINE_INTERVAL_15MINUTE, '15 minutes', '2 months ago UTC']
-        elif interval == '30m':
-            return [Client.KLINE_INTERVAL_30MINUTE, '30 minutes', '4 months ago UTC']
-        elif interval == '1h':
-            return [Client.KLINE_INTERVAL_1HOUR, '1 hour', '6 months ago UTC']
-        elif interval == '4h':
-            return [Client.KLINE_INTERVAL_4HOUR, '4 hours', '2 years ago UTC']
-        elif interval == '1d':
-            return [Client.KLINE_INTERVAL_1DAY, '1 day', '5 years ago UTC']
-        elif interval == '1w':
-            return [Client.KLINE_INTERVAL_1WEEK, '1 week', '9 years ago UTC']
-        elif interval == '1M':
-            return [Client.KLINE_INTERVAL_1MONTH, '1 month', '12 years ago UTC']
-        else:
-            return [Client.KLINE_INTERVAL_1DAY, '1 day (default)', '1 day ago UTC']
+        interval_unit = interval[-1]
+        interval_num = int(interval[:-1])
+        indicators_cushion = self.candle_lookback_length * 500 # cushion is in "interval_units"
+        binance_cushion = 1 # api goes by datetime so adding one extra day/week/month cushion
+
+        if interval_unit == "m":
+            minutes_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion
+            hours_total = int(math.ceil(minutes_total / 60)) + 1 
+            days_total = int(math.ceil(minutes_total / 1440)) + binance_cushion
+            return [interval, f"{interval_num} minutes", f"{days_total} days ago UTC"]
+        
+        elif interval_unit == "h":
+            hours_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion
+            days_total = int(math.ceil(hours_total / 24)) + binance_cushion
+            return [interval, f"{interval_num} hours", f"{days_total} days ago UTC"]
+
+        elif interval_unit == "d":
+            days_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
+            return [interval, f"{interval_num} days", f"{days_total} days ago UTC"]
+        
+        elif interval_unit == "w":
+            weeks_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
+            return [interval, f"{interval_num} weeks", f"{weeks_total} weeks ago UTC"]
+        
+        elif interval_unit == "M":
+            months_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
+            return [interval, f"{interval_num} months", f"{months_total} months ago UTC"]
 
     def generate_indicators_for_dataset(self, df):
         df.insert(0, "ADX_20_0", ta.ADX(df['high_0'], df['low_0'], df['close_0'], timeperiod=20))
@@ -159,7 +164,8 @@ class BinanceHelper(ExchangeHelper):
 
         self.datasets[pair_as_key] = {"sets": []}
 
-        print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} ---")
+        start = datetime.fromtimestamp(start_time)
+        print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} request made at {start.strftime('%Y-%m-%d %H:%M:%S')} ---")
         
         return klines
 
@@ -216,12 +222,13 @@ class BinanceHelper(ExchangeHelper):
         date_info_added_to_df = [dataset, year, month, day, hour, minute, day_of_week]
         dataset = pd.concat(date_info_added_to_df, axis=1)
 
-        for interval in self.possible_intervals:
-            interval_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if interval == interval_of_interest else 0)
-            interval_series_column.name = f"is_{interval}"
+        # Can probably remove interval columns according to current file saving/naming conventions
+        # for interval in self.possible_intervals:
+        #     interval_series_column = dataset["close_time_dt_0"].apply(lambda x: 1 if interval == interval_of_interest else 0)
+        #     interval_series_column.name = f"is_{interval}"
 
-            interval_added_to_df = [dataset, interval_series_column]
-            dataset = pd.concat(interval_added_to_df, axis=1)
+        #     interval_added_to_df = [dataset, interval_series_column]
+        #     dataset = pd.concat(interval_added_to_df, axis=1)
 
         return dataset
             
@@ -246,9 +253,9 @@ class BinanceHelper(ExchangeHelper):
 
                 klines = self.generate_klines(pair_sans_slash, interval, pair_as_key=pair_underscore)
                 cleaned_data = self.clean_data(klines)
-
+        
                 dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)    
-                dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
+                # dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 
                 sets.append({

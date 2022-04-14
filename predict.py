@@ -27,8 +27,8 @@ def save(pair, filename_model, model):
     
     model.save(f"./models/{pair}/{filename_model}")
 
-def setup_features_and_labels(pair, interval, filename):
-    data = pd.read_csv(f"./datasets/{pair}/{interval}/{filename}", delimiter=',')
+def setup_features_and_labels(pair, interval, setup_features_and_labels,filename):
+    data = pd.read_csv(f"./datasets/{pair}/{interval}/{setup_features_and_labels}_candles/{filename}", delimiter=',')
     n_cols_in_data = data.shape[1]
 
     # skip over index, datetime, was_up (label - classification), diff(label - regression)
@@ -123,6 +123,7 @@ def predict(model, X_test, y_test):
     score = model.evaluate(X_test, y_test, verbose=1)
     print(f"score: {score}\n")
 
+    print('-----Jason \n\n', X_test.shape)
     y_pred = model.predict(X_test).flatten()
     confusion_matrices = threshold_testing(
         y_test,
@@ -134,28 +135,29 @@ def predict(model, X_test, y_test):
 
 if __name__ == "__main__":
     # TODO: add prompts if there are no parameters passed
-    # >>> python predict.py XRP/USDT 15m dataset_XRP_USDT_15m_50candles_4-13-2022_12-14.csv 1 0.03
+    # >>> python predict.py XRP/USDT 15m 50 file 1 0.03
     # or
-    # >>> python predict.py XRP/USDT 15m load 1 0.03
+    # >>> python predict.py XRP/USDT 15m 50 load 1 0.03
 
     start_time = time.time()
 
     if sys.argv[3] != "load":
         pair = sys.argv[1].replace("/", "_")
         interval = sys.argv[2]
-        filename_dataset = sys.argv[3]
+        candle_lookback_length = sys.argv[3]
+        filename_dataset = sys.argv[4]
         filename_model = filename_dataset.replace("dataset_", "").replace(".csv", "")
         # maybe add interval and let code find most recent from there with a wildcard
 
         n_epochs = 1
         learning_rate = 0.01
 
-        if len(sys.argv) >= 4:
-            n_epochs = int(sys.argv[4])
+        if len(sys.argv) >= 5:
+            n_epochs = int(sys.argv[5])
         if len(sys.argv) >= 6:
-            learning_rate = float(sys.argv[5])
+            learning_rate = float(sys.argv[6])
         
-        [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, filename_dataset)
+        [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, candle_lookback_length, filename_dataset)
 
         [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
         
@@ -167,6 +169,7 @@ if __name__ == "__main__":
     else:
         pair = sys.argv[1].replace("/", "_")
         interval = sys.argv[2]
+        candle_lookback_length = sys.argv[3]
         
         path_model = f"./models/{pair}/*"
         list_of_files = glob.glob(path_model)
@@ -188,14 +191,11 @@ if __name__ == "__main__":
         if len(sys.argv) >= 6:
             learning_rate = float(sys.argv[5])
 
-        # import pdb
-        # pdb.set_trace()
-
         if reconstructed_model:
             new_model = reconstructed_model
             print(f"--- Retrieve model {latest_filepath} ---")
 
-            [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, latest_dataset)
+            [labels, features, n_rows, n_cols] = setup_features_and_labels(pair, interval, candle_lookback_length, latest_dataset)
             [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
             new_model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
 

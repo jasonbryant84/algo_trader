@@ -20,7 +20,7 @@ def write_csvs(datasets, interfaceHelper):
         for curr_set in dataset_obj["sets"]:
             dataset = curr_set["dataset"]
             interval = curr_set["interval"]
-            path = f"./datasets/{pair}/{interval}"
+            path = f"./datasets/{pair}/{interval}/{interfaceHelper.candle_lookback_length}_candles"
 
             isExist = os.path.exists(path)
             if not isExist:
@@ -32,21 +32,25 @@ def write_csvs(datasets, interfaceHelper):
             hour = dataset.iloc[0]["hour"]
             minute = dataset.iloc[0]["minute"]
 
-            dataset.to_csv(
-                f"{path}/dataset_{pair}_{interval}_{interfaceHelper.candle_lookback_length}candles_{month}-{day}-{year}_{hour}-{minute}.csv"
-            )
+            print('dataset\n', dataset)
+            filename = f"{path}/dataset_{pair}_{interval}_{interfaceHelper.candle_lookback_length}candles_{month}-{day}-{year}_{hour}-{minute}.csv"
 
-def build_datasets(pair, interval):
+            dataset.to_csv(filename)
+            print(f"---- wrote file {filename}")
+
+def build_datasets(pair, interval, candle_lookback_length):
     start_time = time.time()
 
     # Alter the following 2 arrays if desired
     # Entering a pair and interval in command line will take precedent
-    pairs_of_interest = [pair] if pair else ["LINK/USDT", "LUNA/USDT", "SHIB/USDT", "THETA/USDT", "DOT/USDT", "AVAX/USDT", "ALGO/USDT"]
-    intervals_of_interest = [interval] if interval else ["5m", "15m", "30m", "1h", "4h", "1d", "1w"]
+    pairs_of_interest = [pair] if pair else ["XRP/USDT"]
+    intervals_of_interest = [interval] if interval else ["5m"]
+    candle_lookback_length = candle_lookback_length or 50
 
     helper = BinanceHelper(
         pairs_of_interest=pairs_of_interest,
         intervals_of_interest=intervals_of_interest,
+        candle_lookback_length=candle_lookback_length
     )
 
     [full_dataset, datasets] = helper.generate_datasets()
@@ -57,13 +61,17 @@ def build_datasets(pair, interval):
 
 if __name__ == "__main__":
     # TODO: add prompts if there are no parameters passed
+    # python collect_data.py XRP/USDT 5m 50 
+
     pair = None
     interval = None
+    candle_lookback_length = None
 
-    if len(sys.argv) == 2:
+    if len(sys.argv) > 1:
         pair = sys.argv[1]
-    elif len(sys.argv) == 3:
-        pair = sys.argv[1]
+    if len(sys.argv) > 2:
         interval = sys.argv[2]
+    if len(sys.argv) > 3:
+        candle_lookback_length = sys.argv[3]
 
-    build_datasets(pair, interval)
+    build_datasets(pair, interval, candle_lookback_length)
