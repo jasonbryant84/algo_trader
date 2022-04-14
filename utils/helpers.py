@@ -11,7 +11,7 @@ from binance.enums import HistoricalKlinesType
 from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager
 
 import talib as ta
-from .taapi import TaapiInterface
+# from .taapi import TaapiInterface
 
 class ExchangeHelper:
     def __init__(self):
