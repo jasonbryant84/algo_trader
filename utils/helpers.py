@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 from binance import Client
 from binance.enums import HistoricalKlinesType
