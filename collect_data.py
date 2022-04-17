@@ -7,6 +7,7 @@ import pandas as pd
 
 from binance import Client, ThreadedWebsocketManager, ThreadedDepthCacheManager # TODO readup on those other two imports
 from utils.helpers import BinanceHelper
+from utils.cloud_io import write_csvs
 from google.cloud import storage
 
 # Handle flags/vars
@@ -17,58 +18,6 @@ parser.add_argument( "--pair", dest="pair", default="BTC/USDT", help="traiding p
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
 parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
 args = parser.parse_args()
-
-def write_csvs(datasets, interfaceHelper):
-    # Setting credentials for Google Cloud Platform (Cloud Storage specifically)
-    os.environ['GOOGLE_APPLICAITON_CREDENTIALS'] = "credentials.json"
-
-    try:
-        storage_client = storage.Client()
-        buecket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
-        bucket = storage_client.get_bucket(buecket_name)
-
-        for pair in datasets:
-            dataset_obj = datasets[pair]
-            
-            for curr_set in dataset_obj["sets"]:
-                dataset = curr_set["dataset"]
-                interval = curr_set["interval"]
-                path = f"./datasets/{pair}/{interval}/{interfaceHelper.candle_lookback_length}_candles"
-
-                isExist = os.path.exists(path)
-                if not isExist:
-                    os.makedirs(path)
-
-                month = dataset.iloc[0]["month"]
-                month = month if month > 9 else f"0{month}"
-                day = dataset.iloc[0]["day"]
-                day = day if day > 9 else f"0{day}"
-                year = dataset.iloc[0]["year"]
-                hour = dataset.iloc[0]["hour"]
-                hour = hour if hour > 9 else f"0{hour}"
-                minute = dataset.iloc[0]["minute"]
-                minute = minute if minute > 9 else f"0{minute}"
-                print('dataset\n', dataset)
-                
-                # Local Storage
-                if not args.cloudStorage:
-                    filename = f"{path}/dataset_{pair}_{interval}_{interfaceHelper.candle_lookback_length}candles_{month}-{day}-{year}_{hour}-{minute}.csv"
-
-                    dataset.to_csv(filename)
-                    print(f"---- wrote (locally) file {filename}")
-                
-                # GCP - Cloud Storage
-                else:
-                    filename_gcp = f"datasets/{pair}/{interval}/{interfaceHelper.candle_lookback_length}_candles/dataset_{pair}_{interval}_{interfaceHelper.candle_lookback_length}candles_{month}-{day}-{year}_{hour}-{minute}.csv"
-                    
-                    bucket.blob(filename_gcp).upload_from_string(dataset.to_csv(), 'text/csv')
-                    print(f"---- wrote (in GCP) file {filename_gcp}")
-
-                return True
-
-    except Exception as e:
-        print(e)
-        return False
 
 def build_datasets(pair, interval, candle_lookback_length):
     start_time = time.time()
@@ -87,7 +36,7 @@ def build_datasets(pair, interval, candle_lookback_length):
 
     [full_dataset, datasets] = helper.generate_datasets()
 
-    wrote_file = write_csvs(datasets, helper)
+    wrote_file = write_csvs(datasets, helper, cloudStorage=args.cloudStorage)
     write_success_str = "sucessefully wrote csv" if wrote_file else "failed to write csv"
 
     print(f"--- {round((time.time() - start_time), 1)}s Roundtrip and {write_success_str} ---")
