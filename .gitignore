@@ -130,3 +130,5 @@ dmypy.json
 
 /datasets
 /models
+
+service_account_creds.json

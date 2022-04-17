@@ -39,12 +39,12 @@ if __name__ == "__main__":
 
     # maybe leverage dataset stored (csv or db/sql) or just generate since we gotta fetch anyway
     data = get_data(pair, interval, candle_lookback_length)
-    second_row = data[pair_sans_slash]["sets"][0]["dataset"].iloc[1:2]
+    first_row = data[pair_sans_slash]["sets"][0]["dataset"].iloc[0]
 
-    print('\n\n','second_row', second_row, '\n\n')
-    closing_time = second_row["close_time_dt_0"]
-    del second_row["close_time_dt_0"]
-    del second_row["was_up_0"]
+    print('\n\n','first_row', first_row, '\n\n')
+    closing_time = first_row["close_time_dt_0"]
+    del first_row["close_time_dt_0"]
+    del first_row["was_up_0"]
 
     # make a prediction
     path_model = f"./models/{pair_sans_slash}/*"
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     latest_filepath = max(list_of_files, key=os.path.getctime)
     model = tf.keras.models.load_model(latest_filepath)
 
-    buy_sell_array = model.predict(second_row)
+    buy_sell_array = model.predict(first_row)
     buy_sell = buy_sell_array[0][0]
     buy_sell_str = "Buy" if buy_sell == 1 else "Sell"
     # show the inputs and predicted outputs

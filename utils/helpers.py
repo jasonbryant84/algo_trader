@@ -168,8 +168,8 @@ class BinanceHelper(ExchangeHelper):
 
         start = datetime.fromtimestamp(start_time)
         print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} request made at {start.strftime('%Y-%m-%d %H:%M:%S')} ---")
-        
-        return klines
+
+        return klines[1:] #.pop(0) # removing the first element (half-backed/ongoing current candle)
 
 
     ############################################
@@ -252,7 +252,6 @@ class BinanceHelper(ExchangeHelper):
             pair_underscore = pair.replace('/', '_')
 
             for interval in self.intervals_of_interest:  
-
                 klines = self.generate_klines(pair_sans_slash, interval, pair_as_key=pair_underscore)
                 cleaned_data = self.clean_data(klines)
         

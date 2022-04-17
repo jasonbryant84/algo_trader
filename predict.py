@@ -25,22 +25,32 @@ def save(pair, filename_model, model):
     
     model.save(f"./models/{pair}/{filename_model}")
 
-def setup_features_and_labels(pair, interval, setup_features_and_labels,filename):
-    data = pd.read_csv(f"./datasets/{pair}/{interval}/{setup_features_and_labels}_candles/{filename}", delimiter=',')
-    n_cols_in_data = data.shape[1]
+def setup_features_and_labels(pair, interval, setup_features_and_labels, filename):
+    os.environ['GOOGLE_APPLICAITON_CREDENTIALS'] = "credentials.json"
 
-    # skip over index, datetime, was_up (label - classification), diff(label - regression)
-    features = data.iloc[:,3 : n_cols_in_data]
-    features = features[:-1]
+    try: 
+        filname_gcp = f"gs://algo-trader-staging/datasets/{pair}/{interval}/{setup_features_and_labels}_candles/{filename}"
+        data = pd.read_csv(filname_gcp)
 
-    labels = data["was_up_0"]
-    labels = labels.shift(periods=-1, axis="rows")
-    labels = labels[:-1]
+        # data = pd.read_csv(f"./datasets/{pair}/{interval}/{setup_features_and_labels}_candles/{filename}", delimiter=',')
+        n_cols_in_data = data.shape[1]
 
-    n_rows = features.shape[0]
-    n_cols = features.shape[1]
+        # skip over index, datetime, was_up (label - classification), diff(label - regression)
+        features = data.iloc[:,3 : n_cols_in_data]
+        features = features[:-1]
 
-    return [labels, features, n_rows, n_cols]
+        labels = data["was_up_0"]
+        labels = labels.shift(periods=-1, axis="rows")
+        labels = labels[:-1]
+
+        n_rows = features.shape[0]
+        n_cols = features.shape[1]
+
+        return [labels, features, n_rows, n_cols]
+
+    except Exception as e:
+        print(e)
+        return False
 
 def setup_training_and_test_data(labels, features):
     X = features
