@@ -14,20 +14,15 @@ def fetch_model():
 
 
 def save_model(pair, filename_model, model, cloudStorage):
-    if not cloudStorage:
-        path = f"./models/{pair}"
-        isExist = os.path.exists(path)
-        if not isExist:
-            os.makedirs(path)
-        
-        model.save(f"./models/{pair}/{filename_model}")
+    if cloudStorage:
+        path = f"gs://algo-trader-staging/models/{pair}"
+        model.save(f"{path}/{filename_model}")
     else:
-        # TODO Save in cloud
         path = f"./models/{pair}"
         isExist = os.path.exists(path)
         if not isExist:
             os.makedirs(path)
-        
+
         model.save(f"./models/{pair}/{filename_model}")
 
 def write_csvs(datasets, interfaceHelper, cloudStorage):

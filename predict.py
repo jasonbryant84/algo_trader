@@ -202,34 +202,8 @@ if __name__ == "__main__":
         pair,
         filename_model,
         model,
-        cloudStorage=arges.cloudStorage
+        cloudStorage=args.cloudStorage
     )
-
-    # else:
-        # pair = sys.argv[1].replace("/", "_")
-        # interval = sys.argv[2]
-        # candle_lookback_length = sys.argv[3]
-        
-        # path_model = f"./models/{pair}/*"
-        # list_of_files = glob.glob(path_model)
-        # latest_filepath = max(list_of_files, key=os.path.getctime)
-        # reconstructed_model = tf.keras.models.load_model(latest_filepath)
-
-        # path_dataset = f"./datasets/{pair}/{interval}/*"
-        # list_of_files = glob.glob(path_dataset)
-        # latest_dataset = max(list_of_files, key=os.path.getctime)
-        # latest_dataset = latest_dataset.split('/')[-1]
-
-        # filename_model = latest_dataset.replace("dataset_", "").replace(".csv", "")
-
-        # n_epochs = 1
-        # learning_rate = 0.01
-
-        # if len(sys.argv) >= 4:
-        #     n_epochs = int(sys.argv[4])
-        # if len(sys.argv) >= 6:
-        #     learning_rate = float(sys.argv[5])
-
 
 
         # if reconstructed_model:
