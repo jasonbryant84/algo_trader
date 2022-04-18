@@ -19,9 +19,8 @@ from sklearn.metrics import confusion_matrix
 
 from utils.cloud_io import save_model
 
-
 # Handle flags/vars
-# Example: python predict.py --pair XRP/USDT --interval 15m --candles 50 --filename file.csv --epochs 1 --learning_rate 0.03 (--cloudStorage --loadLocalData --loadLocalModel)
+# Example: python predict.py --pair XRP/USDT --interval 5m --candles 50 --filename file.csv --epochs 1 --learning_rate 0.03 (--cloudStorage --loadLocalData --loadLocalModel)
 parser = argparse.ArgumentParser(description="Generate neural network for buy/sell prediction")
 parser.add_argument("--cloudStorage", help="store models in the cloud", action="store_true")
 parser.add_argument("--loadLocalData", help="load a local csv file", action="store_true")

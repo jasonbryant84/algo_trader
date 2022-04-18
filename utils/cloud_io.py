@@ -62,6 +62,8 @@ def write_csvs(datasets, interfaceHelper, cloudStorage):
 
                     dataset.to_csv(filename)
                     print(f"---- wrote (locally) file {filename}")
+                    
+                    return filename
                 
                 # GCP - Cloud Storage
                 else:
@@ -70,7 +72,7 @@ def write_csvs(datasets, interfaceHelper, cloudStorage):
                     bucket.blob(filename_gcp).upload_from_string(dataset.to_csv(), 'text/csv')
                     print(f"---- wrote (in GCP) file {filename_gcp}")
 
-                return True
+                    return filename_gcp
 
     except Exception as e:
         print(e)

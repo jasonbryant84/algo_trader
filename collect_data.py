@@ -20,8 +20,6 @@ parser.add_argument("--candles", dest="n_candles", default="50", help="number of
 args = parser.parse_args()
 
 def build_datasets(pair, interval, candle_lookback_length):
-    start_time = time.time()
-
     # Alter the following 2 arrays if desired
     # Entering a pair and interval in command line will take precedent
     pairs_of_interest = [pair] if pair else ["XRP/USDT"]
@@ -37,13 +35,17 @@ def build_datasets(pair, interval, candle_lookback_length):
     [full_dataset, datasets] = helper.generate_datasets()
 
     wrote_file = write_csvs(datasets, helper, cloudStorage=args.cloudStorage)
-    write_success_str = "sucessefully wrote csv" if wrote_file else "failed to write csv"
 
-    print(f"--- {round((time.time() - start_time), 1)}s Roundtrip and {write_success_str} ---")
+    return datasets, wrote_file
 
 if __name__ == "__main__":
-    build_datasets(
+    start_time = time.time()
+
+    _, wrote_file = build_datasets(
         pair=args.pair,
         interval=args.interval,
         candle_lookback_length=args.n_candles
     )
+
+    write_success_str = "sucessefully wrote csv" if wrote_file else "failed to write csv"
+    print(f"--- {round((time.time() - start_time), 1)}s Roundtrip and {write_success_str} ---")
