@@ -3,11 +3,12 @@ import csv, json, os
 from google.cloud import storage
 
 os.environ['GOOGLE_APPLICAITON_CREDENTIALS'] = "credentials.json"
+bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
 def fetch_model():
     try: 
-        filname_gcp = f"gs://algo-trader-staging/datasets/{pair}/{interval}/{setup_features_and_labels}_candles/{filename}"
-        return pd.read_csv(filname_gcp)
+        filename_gcp = f"gs://{bucket_name}/datasets/{pair}/{interval}/{setup_features_and_labels}_candles/{filename}"
+        return pd.read_csv(filename_gcp)
     except Exception as e:
         print(e)
         return False
@@ -15,7 +16,7 @@ def fetch_model():
 
 def save_model(pair, filename_model, model, cloudStorage):
     if cloudStorage:
-        path = f"gs://algo-trader-staging/models/{pair}"
+        path = f"gs://{bucket_name}/models/{pair}"
         model.save(f"{path}/{filename_model}")
     else:
         path = f"./models/{pair}"
@@ -75,5 +76,6 @@ def write_csvs(datasets, interfaceHelper, cloudStorage):
                     return filename_gcp
 
     except Exception as e:
+        print('--- write_csvs error ---')
         print(e)
         return False
