@@ -17,7 +17,6 @@ from utils.helpers import BinanceHelper
 
 from google.cloud import storage
 
-# Handle flags/vars
 # Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--loadCloudModel --cloudStorage --loadLocalModel)
 parser = argparse.ArgumentParser(description="Generate neural network for buy/sell prediction")
 parser.add_argument("--cloudStorage", help="store models in the cloud", action="store_true")
