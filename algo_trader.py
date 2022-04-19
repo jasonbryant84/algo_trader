@@ -27,10 +27,7 @@ if __name__ == "__main__":
         cloudStorage=args.cloudStorage
     )
 
-    print('wrote_file', wrote_file)
-    write_success_str = "sucessefully wrote csv" if wrote_file else "failed to write csv"
-    print(f"--- {round((time.time() - start_time), 1)}s Roundtrip and {write_success_str} ---")
-
+    print('--- wrote_file ---', wrote_file)
 
     # Predict
     ##############################################
@@ -64,3 +61,5 @@ if __name__ == "__main__":
         model,
         cloudStorage=True
     )
+
+    print(f"\n\n\n===== {round((time.time() - start_time), 1)}s to execute algo_trader.py =====")

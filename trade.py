@@ -18,7 +18,7 @@ from utils.helpers import BinanceHelper
 from google.cloud import storage
 
 # Handle flags/vars
-# Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--cloudStorage --loadLocalModel)
+# Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--loadCloudModel --cloudStorage --loadLocalModel)
 parser = argparse.ArgumentParser(description="Generate neural network for buy/sell prediction")
 parser.add_argument("--cloudStorage", help="store models in the cloud", action="store_true")
 # parser.add_argument("--loadLocalData", help="load a local csv file", action="store_true")
@@ -79,10 +79,7 @@ if __name__ == "__main__":
         latest_filepath = f"gs://{bucket_name}/models/{pair_sans_slash}/{filename}" 
     else:
         path_model_local = f"./models/{pair_sans_slash}/*"
-        path_model_gcp = f"gs://{bucket_name}/models/{pair_sans_slash}/*"
-        path_model = path_model_gcp if args.loadCloudModel else path_model_local
-
-        list_of_files = glob.glob(path_model)
+        list_of_files = glob.glob(path_model_local)
         latest_filepath = max(list_of_files, key=os.path.getctime)
 
     model = tf.keras.models.load_model(latest_filepath)
@@ -92,6 +89,6 @@ if __name__ == "__main__":
     buy_sell_str = "Buy" if buy_sell == 1 else "Sell"
 
     print(f"----- Used model: {latest_filepath} -----")
-    print(f"----- Predicted trade {buy_sell_str} (previous close time {closing_time}) {buy_sell_array} -----")
+    print(f"----- Predicted trade {buy_sell_str} (previous close time {closing_time}) {buy_sell_array}) -----")
 
     print(f"--- {round((time.time() - start_time), 1)}s trade roundtrip (pair: {pair}, interval: {interval}) ---")

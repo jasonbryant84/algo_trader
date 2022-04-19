@@ -55,11 +55,13 @@ if __name__ == "__main__":
     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
     
     model = None
+    # TODO implement properly
     if args.loadLocalModel:
         path_model = f"./models/{pair}/*"
         list_of_files = glob.glob(path_model)
         latest_filepath = max(list_of_files, key=os.path.getctime)
         model = tf.keras.models.load_model(latest_filepath)
+    # TODO implement properly
     elif args.loadCloudModel:
         path_model = f"./models/{pair}/*"
         list_of_files = glob.glob(path_model)
