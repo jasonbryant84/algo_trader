@@ -29,7 +29,7 @@ parser.add_argument("--interval", dest="interval", default="5m", help="time inte
 parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
 args = parser.parse_args()
 
-os.environ['GOOGLE_APPLICAITON_CREDENTIALS'] = "credentials.json"
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google-credentials.json"
 bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
 def get_data(pair, interval, candle_lookback_length):

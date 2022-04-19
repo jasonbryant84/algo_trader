@@ -15,7 +15,7 @@ from sklearn.metrics import confusion_matrix
 bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
 def setup_features_and_labels(pair, interval, candle_lookback_length, filename, loadLocalData):
-    os.environ['GOOGLE_APPLICAITON_CREDENTIALS'] = "credentials.json"
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google-credentials.json"
 
     try:
         filename_local = f"./datasets/{pair}/{interval}/{candle_lookback_length}_candles/{filename}" 

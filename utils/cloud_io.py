@@ -2,7 +2,7 @@ import csv, json, os
 
 from google.cloud import storage
 
-os.environ['GOOGLE_APPLICAITON_CREDENTIALS'] = "credentials.json"
+os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google-credentials.json"
 bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
 def fetch_model():
