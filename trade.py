@@ -1,5 +1,6 @@
-import sys, csv, json, glob, os, time, argparse
+import sys, csv, json, glob, os, time, argparse, pytz
 
+from datetime import datetime
 from pprint import pprint
 
 import tensorflow as tf
@@ -16,6 +17,8 @@ from sklearn.metrics import confusion_matrix
 from utils.helpers import BinanceHelper
 
 from google.cloud import storage
+
+from utils.cloud_io import fetch_predictions, write_prediction_csv
 
 # Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--loadCloudModel --cloudStorage --loadLocalModel)
 parser = argparse.ArgumentParser(description="Generate neural network for buy/sell prediction")
@@ -62,6 +65,7 @@ if __name__ == "__main__":
     # make a prediction
     list_of_files = None
     latest_filepath = None
+    model_filename = None
 
     if args.loadCloudModel:
         storage_client = storage.Client()
@@ -74,9 +78,10 @@ if __name__ == "__main__":
             if blob_name.name[-1] == "/" and blob_name.name[-2].isdigit()
         ]
 
-        filename = blob_names[-1][1:]
-        latest_filepath = f"gs://{bucket_name}/models/{pair_sans_slash}/{filename}" 
+        model_filename = blob_names[-1][1:]
+        latest_filepath = f"gs://{bucket_name}/models/{pair_sans_slash}/{model_filename}" 
     else:
+        # TODO this may need some TLC if it's even used (loading the "latetest" local Model)
         path_model_local = f"./models/{pair_sans_slash}/*"
         list_of_files = glob.glob(path_model_local)
         latest_filepath = max(list_of_files, key=os.path.getctime)
@@ -84,6 +89,7 @@ if __name__ == "__main__":
     model = tf.keras.models.load_model(latest_filepath)
 
     buy_sell_array = model.predict(first_row)
+    prediction_time = datetime.now(tz=pytz.UTC).strftime("%Y-%m-%d %H:%M:%S")
     buy_sell = buy_sell_array[0][0]
     buy_sell_str = "Buy" if buy_sell == 1 else "Sell"
 
@@ -91,3 +97,32 @@ if __name__ == "__main__":
     print(f"----- Predicted trade {buy_sell_str} (previous close time {closing_time}) {buy_sell_array}) -----")
 
     print(f"--- {round((time.time() - start_time), 1)}s trade roundtrip (pair: {pair}, interval: {interval}) ---")
+
+
+    # Storing predictions for future analysis of model performance
+    #################################################################
+
+    # Formatting strings
+    split_filename = model_filename.split("candles_")
+    path = f"{split_filename[0].replace('_','/').replace('/','_',1)}_candles"
+    predictions_filename = f"predictions_{split_filename[0]}_candles.csv"
+
+    predictions_df = fetch_predictions(predictions_filename, path)
+
+    data_df = pd.DataFrame([{
+        "prediction_correct": None,
+        "buy_sell_actual": None,
+        "buy_sell_prediction": buy_sell,
+        "prediction_time": prediction_time,
+        "closing_time": closing_time.iloc[0],
+        "model_name": model_filename[:-1] # remove trailing forward slash
+    }])
+
+    if predictions_df is not False: 
+        temp_df = [data_df, predictions_df]
+        predictions_df = pd.concat(temp_df)
+    else:
+        predictions_df = data_df
+    
+    print('predictions_df\n', predictions_df)
+    write_prediction_csv(predictions_df, predictions_filename, path)

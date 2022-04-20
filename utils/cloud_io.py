@@ -1,4 +1,5 @@
 import csv, json, os
+import pandas as pd
 
 from google.cloud import storage
 
@@ -26,9 +27,7 @@ def save_model(pair, filename_model, model, cloudStorage):
 
         model.save(f"./models/{pair}/{filename_model}")
 
-def write_csvs(datasets, interfaceHelper, cloudStorage):
-    # Setting credentials for Google Cloud Platform (Cloud Storage specifically)
-
+def write_dataset_csvs(datasets, interfaceHelper, cloudStorage):
     try:
         storage_client = storage.Client()
         buecket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
@@ -76,6 +75,35 @@ def write_csvs(datasets, interfaceHelper, cloudStorage):
                     return filename_gcp
 
     except Exception as e:
-        print('--- write_csvs error ---')
+        print('--- write_dataset_csvs error ---')
+        print(e)
+        return False
+
+def fetch_predictions(filename, path):
+    try: 
+        filename_gcp = f"gs://{bucket_name}/predictions/{path}/{filename}"
+        return pd.read_csv(filename_gcp, index_col=[0])
+    except Exception as e:
+        print('Error: ', e)
+        return False
+
+def write_prediction_csv(predictions_df, filename, path):
+    # import pdb
+    # pdb.set_trace()
+
+    try:
+        storage_client = storage.Client()
+        buecket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
+        bucket = storage_client.get_bucket(buecket_name)
+
+        path_filename_gcp = f"predictions/{path}/{filename}"
+        
+        bucket.blob(path_filename_gcp).upload_from_string(predictions_df.to_csv(), 'text/csv')
+        print(f"---- wrote (in GCP) file {path_filename_gcp}")
+
+        return path_filename_gcp
+
+    except Exception as e:
+        print('--- write_dataset_csvs error ---')
         print(e)
         return False

@@ -1,5 +1,5 @@
 from utils.helpers import BinanceHelper
-from utils.cloud_io import write_csvs
+from utils.cloud_io import write_dataset_csvs
 
 def build_datasets(pair, interval, candle_lookback_length, cloudStorage):
     # Alter the following 2 arrays if desired
@@ -16,6 +16,6 @@ def build_datasets(pair, interval, candle_lookback_length, cloudStorage):
 
     [full_dataset, datasets] = helper.generate_datasets()
 
-    wrote_file = write_csvs(datasets, helper, cloudStorage)
+    wrote_file = write_dataset_csvs(datasets, helper, cloudStorage)
 
     return datasets, wrote_file
