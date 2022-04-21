@@ -10,7 +10,7 @@ sched = BlockingScheduler()
 sched.configure(timezone=utc)
 
 # 2 seconds before every 5 minute interval
-@sched.scheduled_job('cron', minute='4-59/2', second='58')
+@sched.scheduled_job('cron', minute='4-59/5', second='58')
 def timed_job():
     now = datetime.datetime.utcnow()
     print ("Current date and time : ")
