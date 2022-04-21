@@ -7,20 +7,7 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 
 sched = BlockingScheduler()
-
-executors = {
-    'default': ThreadPoolExecutor(20),
-    'processpool': ProcessPoolExecutor(5)
-}
-job_defaults = {
-    'coalesce': False,
-    'max_instances': 3
-}
-sched.configure(
-    executors=executors,
-    job_defaults=job_defaults,
-    timezone=utc
-)
+sched.configure(timezone=utc)
 
 # 2 seconds before every 5 minute interval
 @sched.scheduled_job('cron', minute='4-59/5', second='58')
