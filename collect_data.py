@@ -4,7 +4,7 @@ import time, argparse
 
 from utils.collect_data_helpers import build_datasets
 
-# Example: python collect_data.py --pair XRP/USDT --interval 5m --candles 50 (--cloudStorage)
+# Example: python collect_data.py --pair XRP/USDT --interval 5m --candles 50 --cloudStorage
 parser = argparse.ArgumentParser(description="gather candlestick data from Binance and create datasets for machine learning")
 parser.add_argument("--cloudStorage", help="store csvs in the cloud", action="store_true")
 parser.add_argument( "--pair", dest="pair", default="BTC/USDT", help="traiding pair")

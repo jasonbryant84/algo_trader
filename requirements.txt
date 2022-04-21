@@ -4,6 +4,7 @@ pandas==1.4.1
 numpy==1.22.3
 gcsfs==2022.3.0
 google-cloud-storage==2.3.0
+APScheduler==3.9.1
 
 # s3fs==2022.3.0
 # scikit-learn==1.0.2
