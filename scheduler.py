@@ -13,7 +13,7 @@ sched.configure(timezone=utc)
 @sched.scheduled_job('cron', minute='4-59/5', second='56')
 def predict_5min_interval():
     now = datetime.datetime.utcnow()
-    print (f"timed_job_5min_interval(): {now.strftime("%Y-%m-%d %H:%M:%S")}")
+    print (f"timed_job_5min_interval(): {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # trade.py --pair XRP/USDT --interval 5m --candles 50 --loadCloudModel  
     p = subprocess.run(['python', 'trade.py', '--pair', 'XRP/USDT', '--interval', '5m', '--candles', '50', '--loadCloudModel'])
@@ -23,7 +23,7 @@ def predict_5min_interval():
 @sched.scheduled_job('cron', minute='30')
 def generate_model_30min_after_the_hour():
     now = datetime.datetime.utcnow()
-    print (f"generate_model_30min_after_the_hour(): {now.strftime("%Y-%m-%d %H:%M:%S")}")
+    print (f"generate_model_30min_after_the_hour(): {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # python algo_trader.py --pair XRP/USDT --interval 5m --candles 50 --epochs 1 --learning_rate 0.03  --cloudStorage
     p = subprocess.run(['python', 'algo_trader.py', '--pair', 'XRP/USDT', '--interval', '5m', '--candles', '50', '--epochs', '18', '--learning_rate 0.03', '--cloudStorage'])
