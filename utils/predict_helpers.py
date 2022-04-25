@@ -22,9 +22,7 @@ def setup_features_and_labels(pair, interval, candle_lookback_length, filename, 
         filename_gcp = f"gs://{bucket_name}/datasets/{pair}/{interval}/{candle_lookback_length}_candles/{filename}"
         
         filename = filename_local if loadLocalData else filename_gcp
-        print('filename', filename)
         data = pd.read_csv(filename)
-        print('data', data)
 
         n_cols_in_data = data.shape[1]
 
@@ -131,12 +129,11 @@ def predict(model, X_test, y_test):
     score = model.evaluate(X_test, y_test, verbose=1)
     print(f"score: {score}\n")
 
-    print('-----Jason \n\n', X_test.shape)
-    y_pred = model.predict(X_test).flatten()
-    confusion_matrices = threshold_testing(
-        y_test,
-        y_pred,
-        thresholds = np.arange(start=0.5, stop=0.75, step=0.01)
-    )
+    # y_pred = model.predict(X_test).flatten()
+    # confusion_matrices = threshold_testing(
+    #     y_test,
+    #     y_pred,
+    #     thresholds = np.arange(start=0.5, stop=0.75, step=0.01)
+    # )
 
-    pprint(confusion_matrices)
+    # pprint(confusion_matrices)

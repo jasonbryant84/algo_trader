@@ -14,11 +14,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import confusion_matrix
 
-from utils.helpers import BinanceHelper
-
 from google.cloud import storage
 
-from utils.cloud_io import fetch_predictions, write_prediction_csv
+from utils.cloud_io import fetch_predictions, fetch_dataset, write_prediction_csv
 
 # Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--loadCloudModel --cloudStorage --loadLocalModel)
 parser = argparse.ArgumentParser(description="Generate neural network for buy/sell prediction")
@@ -34,27 +32,16 @@ args = parser.parse_args()
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google-credentials.json"
 bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
-def get_data(pair, interval, candle_lookback_length):
-    helper = BinanceHelper(
-        pairs_of_interest=[pair],
-        intervals_of_interest=[interval],
-        candle_lookback_length=candle_lookback_length
-    )
-
-    [_, datasets] = helper.generate_datasets()
-
-    return datasets
-
 if __name__ == "__main__":
     start_time = time.time()
 
-    pair = args.pair #sys.argv[1]
+    pair = args.pair
     pair_sans_slash = pair.replace("/", "_")
-    interval = args.interval #sys.argv[2]
-    candle_lookback_length = args.n_candles #sys.argv[3]
+    interval = args.interval
+    candle_lookback_length = args.n_candles
 
     # maybe leverage dataset stored (csv or db/sql) or just generate since we gotta fetch anyway
-    data = get_data(pair, interval, candle_lookback_length)
+    data = fetch_dataset(pair, interval, candle_lookback_length)
     first_row = data[pair_sans_slash]["sets"][0]["dataset"].iloc[:1] # []:1] is Dataframe [0] is Series
 
     print('\n\n','first_row', first_row, '\n\n')
@@ -124,5 +111,4 @@ if __name__ == "__main__":
     else:
         predictions_df = data_df
     
-    print('predictions_df\n', predictions_df)
     write_prediction_csv(predictions_df, predictions_filename, path)

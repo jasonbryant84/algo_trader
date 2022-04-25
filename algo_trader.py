@@ -26,8 +26,6 @@ if __name__ == "__main__":
         cloudStorage=args.cloudStorage
     )
 
-    print('--- wrote_file ---', wrote_file)
-
     # Predict
     ##############################################
     pair = args.pair.replace("/", "_")

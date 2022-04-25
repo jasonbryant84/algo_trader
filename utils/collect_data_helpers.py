@@ -1,3 +1,4 @@
+import time
 from utils.helpers import BinanceHelper
 from utils.cloud_io import write_dataset_csvs
 
@@ -14,7 +15,10 @@ def build_datasets(pair, interval, candle_lookback_length, cloudStorage):
         candle_lookback_length=candle_lookback_length
     )
 
+    print('\nGenerating dataset(s)...')
+    start_time = time.time()
     [full_dataset, datasets] = helper.generate_datasets()
+    print(f"--- {round((time.time() - start_time), 1)}s to generate dataset ---\n")
 
     wrote_file = write_dataset_csvs(datasets, helper, cloudStorage)
 
