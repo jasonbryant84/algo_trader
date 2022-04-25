@@ -26,7 +26,7 @@ def generate_model_30min_after_the_hour():
     print (f"generate_model_30min_after_the_hour(): {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # python algo_trader.py --pair XRP/USDT --interval 5m --candles 50 --epochs 1 --learning_rate 0.03  --cloudStorage
-    p = subprocess.run(['python', 'algo_trader.py', '--pair', 'XRP/USDT', '--interval', '5m', '--candles', '50', '--epochs', '18', '--learning_rate 0.03', '--cloudStorage'])
+    p = subprocess.run(['python', 'algo_trader.py', '--pair', 'XRP/USDT', '--interval', '5m', '--candles', '50', '--epochs', '18', '--learning_rate', '0.03', '--cloudStorage'])
 
 
 # Generate a model 30 minutes after every hour
