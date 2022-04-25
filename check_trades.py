@@ -46,5 +46,7 @@ if __name__ == "__main__":
 
     predictions_df["prediction_correct"] = (predictions_df["buy_sell_actual"] == predictions_df["buy_sell_prediction"]).astype(int)
 
-    #
+    predictions_df.reset_index(inplace=True)
+
+    # Write to cloud storage
     write_prediction_csv(predictions_df, predictions_filename, path)

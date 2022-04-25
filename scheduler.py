@@ -20,7 +20,7 @@ def predict_5min_interval():
 
 
 # Generate a model 30 minutes after every hour
-@sched.scheduled_job('cron', minute='30')
+@sched.scheduled_job('cron', minute='*/30')
 def generate_model_30min_after_the_hour():
     now = datetime.datetime.utcnow()
     print (f"generate_model_30min_after_the_hour(): {now.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -29,14 +29,14 @@ def generate_model_30min_after_the_hour():
     p = subprocess.run(['python', 'algo_trader.py', '--pair', 'XRP/USDT', '--interval', '5m', '--candles', '50', '--epochs', '18', '--learning_rate 0.03', '--cloudStorage'])
 
 
-# # Generate a model 30 minutes after every hour
-# @sched.scheduled_job('cron', minute='*/5')
-# def update_predictions_metrics():
-#     now = datetime.datetime.utcnow()
-#     print (f"update_predictions_metrics(): {now.strftime('%Y-%m-%d %H:%M:%S')}")
+# Generate a model 30 minutes after every hour
+@sched.scheduled_job('cron', minute='*/15')
+def update_predictions_metrics():
+    now = datetime.datetime.utcnow()
+    print (f"update_predictions_metrics(): {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
-#     # python check_trades.py --pair XRP/USDT --interval 5m --candles 50 --cloudStorage
-#     p = subprocess.run(['python', 'check_trades.py', '--pair', 'XRP/USDT', '--interval', '5m', '--candles', '50', '--cloudStorage'])
+    # python check_trades.py --pair XRP/USDT --interval 5m --candles 50 --cloudStorage
+    p = subprocess.run(['python', 'check_trades.py', '--pair', 'XRP/USDT', '--interval', '5m', '--candles', '50', '--cloudStorage'])
 
 
 sched.start()
