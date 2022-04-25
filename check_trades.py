@@ -32,21 +32,27 @@ if __name__ == "__main__":
         interval=args.interval,
         candle_lookback_length=args.n_candles
     )
-    latest_candles = latest_candles[['was_up_0', 'close_time_dt_0']] # lets add open/close later
+
+    latest_candles = latest_candles[['was_up_0', 'diff_0', 'close_0', 'open_0', 'high_0', 'low_0', 'close_time_dt_0', ]] # lets add open/close later
 
     latest_candles.rename(columns={'was_up_0':'buy_sell_actual'}, inplace=True)
     latest_candles.rename(columns={'close_time_dt_0':'closing_time'}, inplace=True)
-
+    latest_candles.rename(columns={'diff_0':'diff'}, inplace=True)
+    latest_candles.rename(columns={'close_0':'close'}, inplace=True)
+    latest_candles.rename(columns={'open_0':'open'}, inplace=True)
+    latest_candles.rename(columns={'high_0':'high'}, inplace=True)
+    latest_candles.rename(columns={'low_0':'low'}, inplace=True)
+    
     predictions_df = predictions_df.astype({ "closing_time": np.datetime64 })
-
-    predictions_df = predictions_df.set_index('closing_time')
-    latest_candles = latest_candles.set_index('closing_time')
-
-    predictions_df.update(latest_candles)
 
     predictions_df["prediction_correct"] = (predictions_df["buy_sell_actual"] == predictions_df["buy_sell_prediction"]).astype(int)
 
-    predictions_df.reset_index(inplace=True)
+    # Join on closing_time
+    predictions_df.merge(latest_candles, on='closing_time', how='left')
+
+    # del predictions_df["buy_sell_actual_y"]
+    predictions_df.rename(columns={'buy_sell_actual_x':'buy_sell_actual'}, inplace=True)
+    predictions_df['diff'].round(decimals = 5)
 
     # Write to cloud storage
     write_prediction_csv(predictions_df, predictions_filename, path)
