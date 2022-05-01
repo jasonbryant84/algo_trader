@@ -17,16 +17,26 @@ def fetch_model():
 
 
 def save_model(pair, filename_model, model, cloudStorage):
-    if cloudStorage:
-        path = f"gs://{bucket_name}/models/{pair}"
-        model.save(f"{path}/{filename_model}")
-    else:
-        path = f"./models/{pair}"
-        isExist = os.path.exists(path)
-        if not isExist:
-            os.makedirs(path)
+    try:
+        if cloudStorage:
+            path = f"gs://{bucket_name}/models/{pair}"
+            print('sanity', f"{path}/{filename_model}")
+            model.save(f"{path}/{filename_model}")
+            
+        else:
+            path = f"./models/{pair}"
+            isExist = os.path.exists(path)
+            if not isExist:
+                os.makedirs(path)
 
-        model.save(f"./models/{pair}/{filename_model}")
+            model.save(f"./models/{pair}/{filename_model}")
+        
+        return True
+
+    except Exception as e:
+        print('--- save_model error ---')
+        print(e)
+        return False
 
 def fetch_dataset(pair, interval, candle_lookback_length):
     helper = BinanceHelper(

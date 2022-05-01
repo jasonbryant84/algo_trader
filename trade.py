@@ -21,6 +21,7 @@ from utils.cloud_io import fetch_predictions, fetch_dataset, write_prediction_cs
 # Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--loadCloudModel --cloudStorage --loadLocalModel)
 parser = argparse.ArgumentParser(description="Generate neural network for buy/sell prediction")
 parser.add_argument("--cloudStorage", help="store models in the cloud", action="store_true")
+parser.add_argument("--noStorage", help="bypass local and cloud storage", action="store_true")
 # parser.add_argument("--loadLocalData", help="load a local csv file", action="store_true")
 # parser.add_argument("--loadLocalModel", help="load a local model file", action="store_true")
 parser.add_argument("--loadCloudModel", help="load a GCP model file", action="store_true")
@@ -34,6 +35,7 @@ bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
 if __name__ == "__main__":
     start_time = time.time()
+    print('----- Trade -----')
 
     pair = args.pair
     pair_sans_slash = pair.replace("/", "_")
@@ -44,7 +46,6 @@ if __name__ == "__main__":
     data = fetch_dataset(pair, interval, candle_lookback_length)
     first_row = data[pair_sans_slash]["sets"][0]["dataset"].iloc[:1] # []:1] is Dataframe [0] is Series
 
-    print('\n\n','first_row', first_row, '\n\n')
     closing_time = first_row["close_time_dt_0"]
     del first_row["close_time_dt_0"]
     del first_row["was_up_0"]
@@ -75,6 +76,10 @@ if __name__ == "__main__":
 
     model = tf.keras.models.load_model(latest_filepath)
 
+    # import pdb
+    # pdb.set_trace()
+
+    print('\n\n','first_row', first_row)
     buy_sell_array = model.predict(first_row)
     prediction_time = datetime.now(tz=pytz.UTC).strftime("%Y-%m-%d %H:%M:%S")
     buy_sell = buy_sell_array[0][0]

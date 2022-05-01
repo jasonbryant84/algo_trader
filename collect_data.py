@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     start_time = time.time()
-
+    print('----- Collect Data -----')
     _, wrote_file = build_datasets(
         pair=args.pair,
         interval=args.interval,

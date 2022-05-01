@@ -7,7 +7,7 @@
   - Generates deeps neural network according to the previous script's parameters
 3. trade.py
   - Generates a buy or sell prediction based on the above
-4. algo_trader.py (1 and 2 combined)
+4. setup.py (1 and 2 combined)
   - Combines `collect_data` and `predict` above into one step for scheduler use
 5. scheduler.py
   - Creating scheduled jobs for use in the cloude (Heroku)

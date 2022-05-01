@@ -14,20 +14,25 @@ from sklearn.metrics import confusion_matrix
 
 bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
-def setup_features_and_labels(pair, interval, candle_lookback_length, filename, loadLocalData):
+def setup_features_and_labels(pair, interval, candle_lookback_length, filename, loadLocalData, noStorage, dataset):
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google-credentials.json"
 
     try:
-        filename_local = f"./datasets/{pair}/{interval}/{candle_lookback_length}_candles/{filename}" 
-        filename_gcp = f"gs://{bucket_name}/datasets/{pair}/{interval}/{candle_lookback_length}_candles/{filename}"
-        
-        filename = filename_local if loadLocalData else filename_gcp
-        data = pd.read_csv(filename)
+        data = None
+
+        if not noStorage:
+            filename_local = f"./datasets/{pair}/{interval}/{candle_lookback_length}_candles/{filename}" 
+            filename_gcp = f"gs://{bucket_name}/datasets/{pair}/{interval}/{candle_lookback_length}_candles/{filename}"
+            
+            filename = filename_local if loadLocalData else filename_gcp
+            data = pd.read_csv(filename)
+        else:
+            data = dataset
 
         n_cols_in_data = data.shape[1]
 
         # skip over index, datetime, was_up (label - classification), diff(label - regression)
-        features = data.iloc[:,3 : n_cols_in_data]
+        features = data.iloc[:,2 : n_cols_in_data] if noStorage else data.iloc[:,3 : n_cols_in_data]
         features = features[:-1]
 
         labels = data["was_up_0"]
@@ -62,11 +67,11 @@ def setup_nn(X_train, y_train, n_cols, n_epochs = 3, learning_rate = 0.01):
     model.add(Dense(n_cols, activation='relu', input_shape=(n_cols,)))
 
     model.add(Dense(n_cols, activation='relu'))
-    # model.add(Dropout(0.1))
+    model.add(Dropout(0.1))
     model.add(Dense(n_cols, activation='relu'))
-    # model.add(Dropout(0.1))
+    model.add(Dropout(0.1))
     model.add(Dense(n_cols, activation='relu'))
-    # model.add(Dropout(0.1))
+    model.add(Dropout(0.1))
 
     model.add(Dense(1, activation='sigmoid')) # Classification activation function
     model.compile(
