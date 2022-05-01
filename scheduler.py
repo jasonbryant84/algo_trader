@@ -17,7 +17,7 @@ n_epochs = '33'
 learning_rate = '0.01'
 
 # 2 seconds before every 5 minute interval
-@sched.scheduled_job('cron', minute=f"{int(interval_num) - 1}-59/{interval_num}", second='56')
+@sched.scheduled_job('cron', minute=f"{int(interval_num) - 1}-59/{interval_num}", second='59')
 def predict_on_interval():
     now = datetime.datetime.utcnow()
     print (f"--- predict_on_interval ({interval_str} interval): {now.strftime('%Y-%m-%d %H:%M:%S')}")
