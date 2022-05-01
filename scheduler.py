@@ -27,7 +27,7 @@ def predict_on_interval():
 
 
 # Generate a model 30 minutes after every hour
-@sched.scheduled_job('cron', minute=f"*/{interval_num*3}", second='59')
+@sched.scheduled_job('cron', minute=f"*/{int(interval_num)*3}", second='59')
 def generate_model_30min_after_the_hour():
     now = datetime.datetime.utcnow()
     print (f"generate_model_30min_after_the_hour ({interval_str} interva): {now.strftime('%Y-%m-%d %H:%M:%S')}")
