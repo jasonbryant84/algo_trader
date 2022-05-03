@@ -10,10 +10,10 @@ sched = BlockingScheduler()
 sched.configure(timezone=utc)
 
 pair = 'XRP/USDT'
-interval_str = '15m'
+interval_str = '5m'
 interval_num = interval_str[:-1]
 n_candles = '10'
-n_epochs = '33'
+n_epochs = '35'
 learning_rate = '0.01'
 
 # 2 seconds before every 5 minute interval
