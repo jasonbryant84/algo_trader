@@ -67,11 +67,11 @@ def setup_training_and_test_data(labels, features, live_mode):
     X_train_close = X_train["close_0"]
     X_test_close = X_test["close_0"]
     
-    if not live_mode:
-        plt.plot(X_train_close, color='r', label=f"X_train_close: length - {len(X_train_close)}")
-        plt.plot(X_test_close, color='g', label=f"X_test_close: length - {len(X_test_close)}")
-        plt.legend()
-        plt.show()
+    # if not live_mode:
+    #     plt.plot(X_train_close, color='r', label=f"X_train_close: length - {len(X_train_close)}")
+    #     plt.plot(X_test_close, color='g', label=f"X_test_close: length - {len(X_test_close)}")
+    #     plt.legend()
+    #     plt.show()
 
     # Normalize data
     scaler = StandardScaler().fit(X_train)

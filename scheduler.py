@@ -1,4 +1,4 @@
-import datetime, subprocess
+import datetime, subprocess, argparse
 from pytz import utc
 
 import trade
@@ -6,15 +6,25 @@ import trade
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 
+parser = argparse.ArgumentParser(description="Scheduled scripts")
+parser.add_argument("--pair", dest="pair", default="BTC/USDT", help="traiding pair")
+parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
+parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
+parser.add_argument("--epochs", dest="n_epochs", default="1", help="number of epochs use to train the neural network")
+parser.add_argument("--learning_rate", dest="learning_rate", default="0.03", help="learning rate to be used to train the neural network")
+args = parser.parse_args()
+
 sched = BlockingScheduler()
 sched.configure(timezone=utc)
 
-pair = 'XRP/USDT'
-interval_str = '5m'
+pair = args.pair or 'XRP/USDT'
+interval_str = args.interval or '5m'
 interval_num = interval_str[:-1]
-n_candles = '10'
-n_epochs = '35'
-learning_rate = '0.01'
+n_candles = args.n_candles or '10'
+n_epochs = args.n_epochs or '25'
+learning_rate = args.learning_rate or '0.01'
+# python scheduler.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.01
+
 
 # 2 seconds before every 5 minute interval
 @sched.scheduled_job('cron', minute=f"{int(interval_num) - 1}-59/{interval_num}", second='59')

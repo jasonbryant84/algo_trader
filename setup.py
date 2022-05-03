@@ -5,7 +5,7 @@ from predict import setup_features_and_labels, setup_training_and_test_data, set
 from utils.cloud_io import save_model
 
 # Example: python setup.py --pair XRP/USDT --interval 5m --candles 50 --epochs 1 --learning_rate 0.03  --cloudStorage
-# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.03  --noStorage (--noStorage)
+# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.03  --noStorage (--liveMode)
 parser = argparse.ArgumentParser(description="End-to-end algorithm")
 parser.add_argument("--cloudStorage", help="store csvs in the cloud", action="store_true")
 parser.add_argument("--noStorage", help="get predcitions from cloud", action="store_true")

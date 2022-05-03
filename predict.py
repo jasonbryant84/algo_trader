@@ -15,7 +15,7 @@ from utils.cloud_io import save_model
 from utils.predict_helpers import setup_features_and_labels, setup_training_and_test_data, setup_nn, threshold_testing, predict
 
 # Example: python predict.py --pair XRP/USDT --interval 5m --candles 50 --filename file.csv --epochs 1 --learning_rate 0.03 (--cloudStorage --loadLocalData --loadLocalModel)
-parser = argparse.ArgumentParser(description="Generate neural network for buy/sell prediction")
+parser = argparse.ArgumentParser(description="Predict: Generate neural network for buy/sell prediction")
 parser.add_argument("--cloudStorage", help="store models in the cloud", action="store_true")
 parser.add_argument("--noStorage", help="bypass local and cloud storage", action="store_true")
 parser.add_argument("--loadLocalData", help="load a local csv file", action="store_true")
