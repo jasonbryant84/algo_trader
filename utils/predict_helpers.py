@@ -1,6 +1,6 @@
 import sys, os
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from pprint import pprint
 
 from keras.models import Sequential
