@@ -1,5 +1,6 @@
 import sys, os
 
+import matplotlib.pyplot as plt
 from pprint import pprint
 
 from keras.models import Sequential
@@ -50,10 +51,27 @@ def setup_features_and_labels(pair, interval, candle_lookback_length, filename, 
         exit()
         return False
 
-def setup_training_and_test_data(labels, features):
+def setup_training_and_test_data(labels, features, live_mode):
     X = features
     y = np.ravel(labels)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+    # Random Test Split
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+
+    test_size = 1 if live_mode else 24 # int(len(X) * 0.05)
+    offset = 0
+    X_train, X_test = X[test_size + offset:len(X)], X[0 + offset : test_size + offset]
+    y_train, y_test = y[test_size + offset:len(X)], y[0 + offset : test_size + offset]
+
+    X_close = X["close_0"]
+    X_train_close = X_train["close_0"]
+    X_test_close = X_test["close_0"]
+    
+    if not live_mode:
+        plt.plot(X_train_close, color='r', label=f"X_train_close: length - {len(X_train_close)}")
+        plt.plot(X_test_close, color='g', label=f"X_test_close: length - {len(X_test_close)}")
+        plt.legend()
+        plt.show()
 
     # Normalize data
     scaler = StandardScaler().fit(X_train)
@@ -62,12 +80,16 @@ def setup_training_and_test_data(labels, features):
 
     return [X_train, X_test, y_train, y_test]
 
+def generate_sample_weights(y_train):
+    sample_weight = np.arange(len(y_train))
+    return 1 + 4*np.power(0.8, sample_weight) # 1 + 2*(0.8^x) ... https://www.desmos.com/calculator
+
 def setup_nn(X_train, y_train, n_cols, n_epochs = 3, learning_rate = 0.01):
     model = Sequential()
     model.add(Dense(n_cols, activation='relu', input_shape=(n_cols,)))
 
     model.add(Dense(n_cols, activation='relu'))
-    model.add(Dropout(0.1))
+    model.add(Dropout(0.1)) # TODO consider removing the dropouts
     model.add(Dense(n_cols, activation='relu'))
     model.add(Dropout(0.1))
     model.add(Dense(n_cols, activation='relu'))
@@ -80,14 +102,20 @@ def setup_nn(X_train, y_train, n_cols, n_epochs = 3, learning_rate = 0.01):
         metrics=['accuracy']
     )
     K.set_value(model.optimizer.learning_rate, learning_rate)
+    
+    # Temporal sample weighting for loss function
+    sample_weight = generate_sample_weights(y_train)
 
-    # print('---------- Sanity -----------')
-    # import pdb
-    # pdb.set_trace()
-    # print(X_train.shape(), y_train.shape(), n_cols, n_epochs)
-    model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
+    model.fit(
+        X_train,
+        y_train,
+        sample_weight=sample_weight,
+        epochs=n_epochs,
+        batch_size=1,
+        verbose=1
+    )
 
-    return model
+    return model, sample_weight
 
 def threshold_testing(y_test, y_pred, thresholds):
     # NOTA BENE: Limit false positives (fp)! ie false buy signals

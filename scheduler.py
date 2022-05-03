@@ -10,7 +10,7 @@ sched = BlockingScheduler()
 sched.configure(timezone=utc)
 
 pair = 'XRP/USDT'
-interval_str = '5m'
+interval_str = '15m'
 interval_num = interval_str[:-1]
 n_candles = '10'
 n_epochs = '33'
@@ -33,7 +33,7 @@ def generate_model_30min_after_the_hour():
     print (f"generate_model_30min_after_the_hour ({interval_str} interva): {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.03  --noStorage
-    p = subprocess.run(['python', 'setup.py', '--pair', pair, '--interval', interval_str, '--candles', n_candles, '--epochs', n_epochs, '--learning_rate', learning_rate, '--noStorage'])
+    p = subprocess.run(['python', 'setup.py', '--pair', pair, '--interval', interval_str, '--candles', n_candles, '--epochs', n_epochs, '--learning_rate', learning_rate, '--noStorage', '--liveMode'])
 
 
 # Generate a model 30 minutes after every hour

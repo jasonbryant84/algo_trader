@@ -4,18 +4,11 @@
 
 import sys, csv, json, glob, os, time, argparse
 
-from pprint import pprint
-
 import tensorflow as tf
-from keras.models import Sequential
 import pandas as pd
-from keras.layers import Dense, Dropout
 from keras import backend as K
 
 import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix
 
 from utils.cloud_io import save_model
 
@@ -28,6 +21,7 @@ parser.add_argument("--noStorage", help="bypass local and cloud storage", action
 parser.add_argument("--loadLocalData", help="load a local csv file", action="store_true")
 parser.add_argument("--loadLocalModel", help="load a local model file", action="store_true")
 parser.add_argument("--loadCloudModel", help="load a GCP model file", action="store_true")
+parser.add_argument("--liveMode", help="in live mode, thus test_size is 0", action="store_true")
 parser.add_argument( "--pair", dest="pair", default="BTC/USDT", help="traiding pair")
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
 parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
@@ -54,7 +48,7 @@ if __name__ == "__main__":
     )
 
     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
-    
+
     model = None
     # TODO implement properly
     if args.loadLocalModel:
@@ -69,7 +63,7 @@ if __name__ == "__main__":
         latest_filepath = max(list_of_files, key=os.path.getctime)
         model = tf.keras.models.load_model(latest_filepath)
     else:
-        model = setup_nn(
+        model, _ = setup_nn(
             X_train,
             y_train,
             n_cols,

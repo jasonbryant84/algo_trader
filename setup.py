@@ -5,9 +5,11 @@ from predict import setup_features_and_labels, setup_training_and_test_data, set
 from utils.cloud_io import save_model
 
 # Example: python setup.py --pair XRP/USDT --interval 5m --candles 50 --epochs 1 --learning_rate 0.03  --cloudStorage
+# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.03  --noStorage (--noStorage)
 parser = argparse.ArgumentParser(description="End-to-end algorithm")
 parser.add_argument("--cloudStorage", help="store csvs in the cloud", action="store_true")
 parser.add_argument("--noStorage", help="get predcitions from cloud", action="store_true")
+parser.add_argument("--liveMode", help="in live mode, thus test_size is 0", action="store_true")
 parser.add_argument("--pair", dest="pair", default="BTC/USDT", help="traiding pair")
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
 parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
@@ -69,9 +71,13 @@ if __name__ == "__main__":
     print('n_rows\n', n_rows)
     print('n_cols\n', n_cols)
 
-    [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+    [X_train, X_test, y_train, y_test] = setup_training_and_test_data(
+        labels,
+        features,
+        live_mode=args.liveMode
+    )
 
-    model = setup_nn(
+    model, sample_weight = setup_nn(
         X_train,
         y_train,
         n_cols,
@@ -79,7 +85,8 @@ if __name__ == "__main__":
         learning_rate=args.learning_rate
     )
 
-    predict(model, X_test, y_test)
+    if not args.liveMode:
+        predict(model, X_test, y_test)
     
     filename_model = filename.replace("dataset_", "").replace(".csv", "") if not args.noStorage else filename_model
     success = save_model(

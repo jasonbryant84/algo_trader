@@ -1,18 +1,10 @@
-import sys, csv, json, glob, os, time, argparse, pytz
+import csv, glob, os, time, argparse, pytz
 
 from datetime import datetime
-from pprint import pprint
 
 import tensorflow as tf
-from keras.models import Sequential
 import pandas as pd
-from keras.layers import Dense, Dropout
 from keras import backend as K
-
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import confusion_matrix
 
 from google.cloud import storage
 
