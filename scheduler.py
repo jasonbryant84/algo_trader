@@ -43,7 +43,7 @@ def generate_model():
     print (f"generate_model ({interval_str} interva): {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
     # python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 25 --learning_rate 0.01  --noStorage --liveMode
-    p = subprocess.run(['python', 'setup.py', '--pair', pair, '--interval', interval_str, '--candles', n_candles, '--epochs', n_epochs, '--learning_rate', learning_rate, '--noStorage'])
+    p = subprocess.run(['python', 'setup.py', '--pair', pair, '--interval', interval_str, '--candles', n_candles, '--epochs', n_epochs, '--learning_rate', learning_rate, '--noStorage', '--liveMode'])
 
 
 # # Generate a model 30 minutes after every hour
