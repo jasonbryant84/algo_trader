@@ -69,6 +69,7 @@ if __name__ == "__main__":
         list_of_files = glob.glob(path_model_local)
         latest_filepath = max(list_of_files, key=os.path.getctime)
 
+    print('latest_filepath', latest_filepath)
     model = tf.keras.models.load_model(latest_filepath)
 
     # import pdb
