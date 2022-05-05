@@ -68,6 +68,8 @@ def check_trades(pair, interval, n_candles, cloudStorage):
         predictions_df.rename(columns={'low_y':'low'}, inplace=True)
 
     predictions_df["prediction_correct"] = (predictions_df["actual"] == predictions_df["buy_sell_prediction"]).astype(int)
+    # predictions_df.loc[predictions_df["prediction_correct"] condition, ‘new column name’] = ‘value if condition is met’
+
     predictions_df.insert(1, 'actual', predictions_df.pop('actual'))
 
     predictions_df['diff'].round(decimals = 5)

@@ -9,6 +9,7 @@ from keras import backend as K
 from google.cloud import storage
 
 from utils.cloud_io import fetch_predictions, fetch_dataset, write_prediction_csv
+from utils.formatting import bcolors
 
 # Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--loadCloudModel --cloudStorage --loadLocalModel)
 parser = argparse.ArgumentParser(description="Trade: Generate neural network for buy/sell prediction")
@@ -17,7 +18,7 @@ parser.add_argument("--noStorage", help="bypass local and cloud storage", action
 # parser.add_argument("--loadLocalData", help="load a local csv file", action="store_true")
 # parser.add_argument("--loadLocalModel", help="load a local model file", action="store_true")
 parser.add_argument("--loadCloudModel", help="load a GCP model file", action="store_true")
-parser.add_argument( "--pair", dest="pair", default="BTC/USDT", help="traiding pair")
+parser.add_argument( "--pair", dest="pair", default="XRP/USDT", help="traiding pair")
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
 parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
 parser.add_argument("--epochs", dest="n_epochs", default="1", help="number of epochs use to train the neural network")
@@ -29,7 +30,7 @@ bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
 if __name__ == "__main__":
     start_time = time.time()
-    print('----- Trade -----')
+    print(f"{bcolors.OKCYAN}----- Trade -----{bcolors.ENDC}")
 
     pair = args.pair
     pair_sans_slash = pair.replace("/", "_")

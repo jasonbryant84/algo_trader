@@ -22,7 +22,7 @@ parser.add_argument("--loadLocalData", help="load a local csv file", action="sto
 parser.add_argument("--loadLocalModel", help="load a local model file", action="store_true")
 parser.add_argument("--loadCloudModel", help="load a GCP model file", action="store_true")
 parser.add_argument("--liveMode", help="in live mode, thus test_size is 0", action="store_true")
-parser.add_argument( "--pair", dest="pair", default="BTC/USDT", help="traiding pair")
+parser.add_argument( "--pair", dest="pair", default="XRP/USDT", help="traiding pair")
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
 parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
 parser.add_argument("--filename", dest="filename", default="no_file.csv", help="filename of csv to use for training")
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         loadLocalData=args.loadLocalData
     )
 
-    [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+    [X_train_scaled, X_test_scaled, y_train, y_test, X_train, X_test] = setup_training_and_test_data(labels, features)
 
     model = None
     # TODO implement properly
@@ -64,14 +64,14 @@ if __name__ == "__main__":
         model = tf.keras.models.load_model(latest_filepath)
     else:
         model, _ = setup_nn(
-            X_train,
             y_train,
             n_cols,
+            X_train=X_train_scaled,
             n_epochs=int(args.n_epochs),
             learning_rate=args.learning_rate
         )
 
-    predict(model, X_test, y_test)
+    predict(model, y_test, X_test=X_test_scaled)
     
     save_model(
         pair,
@@ -80,21 +80,20 @@ if __name__ == "__main__":
         cloudStorage=args.cloudStorage
     )
 
+    # if reconstructed_model:
+    #     new_model = reconstructed_model
+    #     print(f"--- Retrieve model {latest_filepath} ---")
 
-        # if reconstructed_model:
-        #     new_model = reconstructed_model
-        #     print(f"--- Retrieve model {latest_filepath} ---")
+    #     labels, features, n_rows, n_cols = setup_features_and_labels(pair, interval, candle_lookback_length, latest_dataset)
+    #     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
+    #     new_model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
 
-        #     labels, features, n_rows, n_cols = setup_features_and_labels(pair, interval, candle_lookback_length, latest_dataset)
-        #     [X_train, X_test, y_train, y_test] = setup_training_and_test_data(labels, features)
-        #     new_model.fit(X_train, y_train, epochs=n_epochs, batch_size=1, verbose=1)
+    #     # Let's check:
+    #     np.testing.assert_allclose(
+    #         new_model.predict(X_test), reconstructed_model.predict(X_test)
+    #     )
 
-        #     # Let's check:
-        #     np.testing.assert_allclose(
-        #         new_model.predict(X_test), reconstructed_model.predict(X_test)
-        #     )
-
-        #     predict(new_model, X_test, y_test)
-        #     save_model(pair, filename_model, new_model)
+    #     predict(new_model, X_test, y_test)
+    #     save_model(pair, filename_model, new_model)
 
     print(f"--- {round((time.time() - start_time), 1)}s prediction roundtrip (pair: {pair}) ---")

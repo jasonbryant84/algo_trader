@@ -1,6 +1,6 @@
 import sys, os
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 from pprint import pprint
 
 from keras.models import Sequential
@@ -63,22 +63,16 @@ def setup_training_and_test_data(labels, features, live_mode):
     X_train, X_test = X[test_size + offset:len(X)], X[0 + offset : test_size + offset]
     y_train, y_test = y[test_size + offset:len(X)], y[0 + offset : test_size + offset]
 
-    X_close = X["close_0"]
+    # X_close = X["close_0"]
     X_train_close = X_train["close_0"]
     X_test_close = X_test["close_0"]
-    
-    # if not live_mode:
-    #     plt.plot(X_train_close, color='r', label=f"X_train_close: length - {len(X_train_close)}")
-    #     plt.plot(X_test_close, color='g', label=f"X_test_close: length - {len(X_test_close)}")
-    #     plt.legend()
-    #     plt.show()
 
     # Normalize data
     scaler = StandardScaler().fit(X_train)
-    X_train = scaler.transform(X_train)
-    X_test = scaler.transform(X_test)
+    X_train_scaled = scaler.transform(X_train)
+    X_test_scaled = scaler.transform(X_test)
 
-    return [X_train, X_test, y_train, y_test]
+    return [X_train_scaled, X_test_scaled, y_train, y_test, X_train, X_test]
 
 def generate_sample_weights(y_train):
     sample_weight = np.arange(len(y_train))
@@ -106,6 +100,7 @@ def setup_nn(X_train, y_train, n_cols, n_epochs = 3, learning_rate = 0.01):
     # Temporal sample weighting for loss function
     sample_weight = generate_sample_weights(y_train)
 
+    print(f"-------- Setup NN: X_train.shape({X_train.shape}) and Y_train.shape({y_train.shape}) -------")
     model.fit(
         X_train,
         y_train,
