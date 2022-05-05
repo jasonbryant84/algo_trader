@@ -52,7 +52,7 @@ def generate_model():
 #     now = datetime.datetime.utcnow()
 #     print (f"--- update_predictions_metrics ({interval_str} interval): {now.strftime('%Y-%m-%d %H:%M:%S')}")
 
-#     # python check_trades.py --pair XRP/USDT --interval 5m --candles 50 --cloudStorage
+#     # python check_trades.py --pair XRP/USDT --interval 5m --candles 10 --cloudStorage
 #     p = subprocess.run(['python', 'check_trades.py', '--pair', pair, '--interval', interval_str, '--candles', n_candles, '--cloudStorage'])
 
 

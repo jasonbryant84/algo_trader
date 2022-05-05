@@ -7,7 +7,7 @@ def build_datasets(pair, interval, candle_lookback_length, cloudStorage, noStora
     # Entering a pair and interval in command line will take precedent
     pairs_of_interest = [pair] if pair else ["XRP/USDT"]
     intervals_of_interest = [interval] if interval else ["5m"]
-    candle_lookback_length = candle_lookback_length or 50
+    candle_lookback_length = candle_lookback_length or 10
 
     helper = BinanceHelper(
         pairs_of_interest=pairs_of_interest,

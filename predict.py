@@ -14,7 +14,7 @@ from utils.cloud_io import save_model
 
 from utils.predict_helpers import setup_features_and_labels, setup_training_and_test_data, setup_nn, threshold_testing, predict
 
-# Example: python predict.py --pair XRP/USDT --interval 5m --candles 50 --filename file.csv --epochs 1 --learning_rate 0.03 (--cloudStorage --loadLocalData --loadLocalModel)
+# Example: python predict.py --pair XRP/USDT --interval 5m --candles 10 --filename file.csv --epochs 1 --learning_rate 0.01 (--cloudStorage --loadLocalData --loadLocalModel)
 parser = argparse.ArgumentParser(description="Predict: Generate neural network for buy/sell prediction")
 parser.add_argument("--cloudStorage", help="store models in the cloud", action="store_true")
 parser.add_argument("--noStorage", help="bypass local and cloud storage", action="store_true")
@@ -24,10 +24,10 @@ parser.add_argument("--loadCloudModel", help="load a GCP model file", action="st
 parser.add_argument("--liveMode", help="in live mode, thus test_size is 0", action="store_true")
 parser.add_argument( "--pair", dest="pair", default="XRP/USDT", help="traiding pair")
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
-parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
+parser.add_argument("--candles", dest="n_candles", default="10", help="number of candles for look back")
 parser.add_argument("--filename", dest="filename", default="no_file.csv", help="filename of csv to use for training")
-parser.add_argument("--epochs", dest="n_epochs", default="1", help="number of epochs use to train the neural network")
-parser.add_argument("--learning_rate", dest="learning_rate", default="0.03", help="learning rate to be used to train the neural network")
+parser.add_argument("--epochs", dest="n_epochs", default="35", help="number of epochs use to train the neural network")
+parser.add_argument("--learning_rate", dest="learning_rate", default="0.01", help="learning rate to be used to train the neural network")
 args = parser.parse_args()
 
 if __name__ == "__main__":

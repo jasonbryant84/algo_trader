@@ -7,17 +7,17 @@ from predict import setup_features_and_labels, setup_training_and_test_data, set
 from utils.cloud_io import save_model
 from utils.formatting import bcolors
 
-# Example: python setup.py --pair XRP/USDT --interval 5m --candles 50 --epochs 1 --learning_rate 0.03  --cloudStorage
-# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.03  --noStorage (--liveMode)
+# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 1 --learning_rate 0.01  --cloudStorage
+# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.01  --noStorage (--liveMode)
 parser = argparse.ArgumentParser(description="End-to-end algorithm")
 parser.add_argument("--cloudStorage", help="store csvs in the cloud", action="store_true")
 parser.add_argument("--noStorage", help="get predcitions from cloud", action="store_true")
 parser.add_argument("--liveMode", help="in live mode, thus test_size is 0", action="store_true")
 parser.add_argument("--pair", dest="pair", default="XRP/USDT", help="traiding pair")
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
-parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
-parser.add_argument("--epochs", dest="n_epochs", default="1", help="number of epochs use to train the neural network")
-parser.add_argument("--learning_rate", dest="learning_rate", default="0.03", help="learning rate to be used to train the neural network")
+parser.add_argument("--candles", dest="n_candles", default="10", help="number of candles for look back")
+parser.add_argument("--epochs", dest="n_epochs", default="35", help="number of epochs use to train the neural network")
+parser.add_argument("--learning_rate", dest="learning_rate", default="0.01", help="learning rate to be used to train the neural network")
 args = parser.parse_args()
 
 if __name__ == "__main__":

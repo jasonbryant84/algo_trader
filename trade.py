@@ -11,7 +11,7 @@ from google.cloud import storage
 from utils.cloud_io import fetch_predictions, fetch_dataset, write_prediction_csv
 from utils.formatting import bcolors
 
-# Example: python trade.py --pair XRP/USDT --interval 5m --candles 50 (--loadCloudModel --cloudStorage --loadLocalModel)
+# Example: python trade.py --pair XRP/USDT --interval 5m --candles 10 (--loadCloudModel --cloudStorage --loadLocalModel)
 parser = argparse.ArgumentParser(description="Trade: Generate neural network for buy/sell prediction")
 parser.add_argument("--cloudStorage", help="store models in the cloud", action="store_true")
 parser.add_argument("--noStorage", help="bypass local and cloud storage", action="store_true")
@@ -20,9 +20,9 @@ parser.add_argument("--noStorage", help="bypass local and cloud storage", action
 parser.add_argument("--loadCloudModel", help="load a GCP model file", action="store_true")
 parser.add_argument( "--pair", dest="pair", default="XRP/USDT", help="traiding pair")
 parser.add_argument("--interval", dest="interval", default="5m", help="time interval")
-parser.add_argument("--candles", dest="n_candles", default="50", help="number of candles for look back")
-parser.add_argument("--epochs", dest="n_epochs", default="1", help="number of epochs use to train the neural network")
-parser.add_argument("--learning_rate", dest="learning_rate", default="0.03", help="learning rate to be used to train the neural network")
+parser.add_argument("--candles", dest="n_candles", default="10", help="number of candles for look back")
+parser.add_argument("--epochs", dest="n_epochs", default="35", help="number of epochs use to train the neural network")
+parser.add_argument("--learning_rate", dest="learning_rate", default="0.01", help="learning rate to be used to train the neural network")
 args = parser.parse_args()
 
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google-credentials.json"
