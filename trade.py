@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     if args.loadCloudModel:
         storage_client = storage.Client()
-        PREFIX=f"models/{pair_sans_slash}_{interval}_{candle_lookback_length}candles"
+        PREFIX=f"models/{pair_sans_slash}_{interval}_{candle_lookback_length}candles*"
         blobs = list(storage_client.list_blobs(bucket_name, prefix=PREFIX, fields="items(name)"))
         blob_names = [
             blob_name.name[len(PREFIX):] 
