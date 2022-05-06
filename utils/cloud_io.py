@@ -16,10 +16,10 @@ def fetch_model():
         return False
 
 
-def save_model(pair, filename_model, model, cloudStorage):
+def save_model(pair, interval, candles, filename_model, model, cloudStorage):
     try:
         if cloudStorage:
-            path = f"gs://{bucket_name}/models/{pair}"
+            path = f"gs://{bucket_name}/models/{pair}/{interval}/{candles}_candles"
             print('sanity', f"{path}/{filename_model}")
             model.save(f"{path}/{filename_model}")
             

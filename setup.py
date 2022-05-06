@@ -24,6 +24,9 @@ if __name__ == "__main__":
     start_time = time.time()
     print(f"{bcolors.OKCYAN}----- Setup -----{bcolors.ENDC}")
 
+    interval = args.interval
+    candles = args.n_candles
+
     # Collect Data
     ##############################################
     datasets, wrote_file = build_datasets(
@@ -116,6 +119,8 @@ if __name__ == "__main__":
     filename_model = filename.replace("dataset_", "").replace(".csv", "") if not args.noStorage else filename_model
     success = save_model(
         pair,
+        interval,
+        candles,
         filename_model,
         model,
         cloudStorage=True

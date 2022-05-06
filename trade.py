@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     if args.loadCloudModel:
         storage_client = storage.Client()
-        PREFIX=f"models/{pair_sans_slash}_{interval}_{candle_lookback_length}candles*"
+        PREFIX=f"models/{pair_sans_slash}/{interval}/{candle_lookback_length}_candles/"
         blobs = list(storage_client.list_blobs(bucket_name, prefix=PREFIX, fields="items(name)"))
         blob_names = [
             blob_name.name[len(PREFIX):] 
@@ -61,8 +61,8 @@ if __name__ == "__main__":
             if blob_name.name[-1] == "/" and blob_name.name[-2].isdigit()
         ]
 
-        model_filename = blob_names[-1][1:]
-        latest_filepath = f"gs://{bucket_name}/models/{pair_sans_slash}/{model_filename}" 
+        model_filename = blob_names[-1][:-1]
+        latest_filepath = f"gs://{bucket_name}/{PREFIX}{model_filename}" 
     else:
         # TODO this may need some TLC if it's even used (loading the "latetest" local Model)
         path_model_local = f"./models/{pair_sans_slash}/*"
@@ -71,9 +71,6 @@ if __name__ == "__main__":
 
     print('latest_filepath', latest_filepath)
     model = tf.keras.models.load_model(latest_filepath)
-
-    # import pdb
-    # pdb.set_trace()
 
     print('\n\n','first_row', first_row)
     buy_sell_array = model.predict(first_row)

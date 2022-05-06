@@ -34,6 +34,9 @@ if __name__ == "__main__":
     start_time = time.time()
     print('----- Predict -----')
 
+    interval = args.interval
+    candles = args.n_candles
+
     pair = args.pair.replace("/", "_")
     filename_dataset = args.filename
     filename_model = args.filename.replace("dataset_", "").replace(".csv", "")
@@ -75,6 +78,8 @@ if __name__ == "__main__":
     
     save_model(
         pair,
+        interval,
+        candles,
         filename_model,
         model,
         cloudStorage=args.cloudStorage
