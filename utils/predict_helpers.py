@@ -157,6 +157,8 @@ def predict(model, X_test, y_test):
     score = model.evaluate(X_test, y_test, verbose=1)
     print(f"score: {score}\n")
 
+    return score
+
     # y_pred = model.predict(X_test).flatten()
     # confusion_matrices = threshold_testing(
     #     y_test,

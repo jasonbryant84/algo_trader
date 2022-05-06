@@ -1,13 +1,13 @@
 import sys, csv, json, os, time, argparse, datetime
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 from utils.collect_data_helpers import build_datasets
 from predict import setup_features_and_labels, setup_training_and_test_data, setup_nn, predict
 from utils.cloud_io import save_model
 from utils.formatting import bcolors
 
-# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 1 --learning_rate 0.01  --cloudStorage
+# Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.01  --cloudStorage
 # Example: python setup.py --pair XRP/USDT --interval 5m --candles 10 --epochs 33 --learning_rate 0.01  --noStorage (--liveMode)
 parser = argparse.ArgumentParser(description="End-to-end algorithm")
 parser.add_argument("--cloudStorage", help="store csvs in the cloud", action="store_true")
@@ -54,9 +54,7 @@ if __name__ == "__main__":
         filename_model = f"{args.pair.replace('/','_')}_{args.interval}_{args.n_candles}candles_{month}-{day}-{year}_{hour}-{minute}"
 
         print('**************************** SHAPE: ', dataset.shape)
-    # import pdb
-    # pdb.set_trace()
-    # print(dataset.iloc[0][:1])
+
 
     # Predict
     ##############################################
@@ -76,6 +74,7 @@ if __name__ == "__main__":
     print('features\n', features)
     print('n_rows\n', n_rows)
     print('n_cols\n', n_cols)
+    print('dataset\n', dataset)
 
     [X_train_scaled, X_test_scaled, y_train, y_test, X_train, X_test] = setup_training_and_test_data(
         labels,
@@ -92,29 +91,30 @@ if __name__ == "__main__":
     )
 
     # if not args.liveMode:
-    predict(model, X_test_scaled, y_test)
+    score = predict(model, X_test_scaled, y_test)
 
     
-    # if not live_mode:
-    # X_train_close = X_train["close_0"]
-    # X_test_close = X_test["close_0"]
+    if not live_mode:
+        X_train_close = X_train["close_0"]
+        X_test_close = X_test["close_0"]
 
-    # graph, (plot1, plot2) = plt.subplots(1, 2)
+        graph, (plot1, plot2) = plt.subplots(1, 2)
 
-    # plot1.set_title(f"Temporal Training Split for ({args.pair})")
-    # plot1.plot(X_train_close, color='r', label=f"X_train_close: length - {len(X_train_close)}")
-    # plot1.plot(X_test_close, color='g', label=f"X_test_close: length - {len(X_test_close)}")
-    # plot1.invert_xaxis()
-    # plot1.legend()
+        test_accuracy = (score[1] * 100)
+        plot1.set_title(f"Temporal Training Split for ({args.pair}) / Test accuracy {test_accuracy}%")
+        plot1.plot(X_train_close, color='r', label=f"X_train_close: length - {len(X_train_close)}")
+        plot1.plot(X_test_close, color='g', label=f"X_test_close: length - {len(X_test_close)}")
+        plot1.invert_xaxis()
+        plot1.legend()
 
-    # plot2.set_title("Testing Data")
-    # plot2.plot(X_test["close_0"], color='g', label=f"X_test_close: length - {len(X_test_close)}")
-    # plot2.plot(X_test["open_0"], color='b', label=f"X_test_open: length - {len(X_test_close)}")
-    # plot2.invert_xaxis()
-    # plot2.legend()
-    
-    # graph.tight_layout()
-    # plt.show()
+        plot2.set_title("Testing Data")
+        plot2.plot(X_test["close_0"], color='g', label=f"X_test_close: length - {len(X_test_close)}")
+        plot2.plot(X_test["open_0"], color='b', label=f"X_test_open: length - {len(X_test_close)}")
+        plot2.invert_xaxis()
+        plot2.legend()
+        
+        graph.tight_layout()
+        plt.show()
 
     filename_model = filename.replace("dataset_", "").replace(".csv", "") if not args.noStorage else filename_model
     success = save_model(

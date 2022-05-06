@@ -259,6 +259,8 @@ class BinanceHelper(ExchangeHelper):
                 # dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 
+                dataset = dataset.reset_index(drop=True)
+
                 sets.append({
                     "interval": interval,
                     "dataset": dataset

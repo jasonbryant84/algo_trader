@@ -24,7 +24,7 @@ if __name__ == "__main__":
         cloudStorage=args.cloudStorage
     )
 
-    window = 14
+    window = 60
     predictions_df = predictions_df.head(window)
     reference_start_price = predictions_df.iloc[window-1]["close"]
 
