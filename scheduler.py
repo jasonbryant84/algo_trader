@@ -23,7 +23,7 @@ interval_num = interval_str[:-1]
 n_candles = args.n_candles or '10'
 n_epochs = args.n_epochs or '35'
 learning_rate = args.learning_rate or '0.01'
-# python scheduler.py --pair XRP/USDT --interval 5m --candles 10 --epochs 25 --learning_rate 0.01
+# python scheduler.py --pair XRP/USDT --interval 5m --candles 10 --epochs 35 --learning_rate 0.01
 
 
 # 2 seconds before every 5 minute interval

@@ -1,6 +1,6 @@
 import sys, csv, json, os, time, argparse, datetime
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 from utils.collect_data_helpers import build_datasets
 from predict import setup_features_and_labels, setup_training_and_test_data, setup_nn, predict
