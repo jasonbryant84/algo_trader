@@ -52,6 +52,50 @@ class BinanceHelper(ExchangeHelper):
         self.datasets = {}
         self.full_dataset = None
 
+    def generate_sub_interval_data(self, interval_num, interval_unit):
+        unit = None
+
+        sub_interval = None
+        sub_interval_unit = interval_unit
+
+        if interval_unit == "m":
+            unit = "minutes"
+            if interval_num == 5:
+                sub_interval = 1
+            elif interval_num == 15 or interval_num == 30:
+                sub_interval = 5
+        elif interval_unit == "h":
+            unit = "hours"
+            if interval_num == 1:
+                sub_interval = 15
+                sub_interval_unit = "m"
+            elif interval_num == 4 or interval_num == 6:
+                sub_interval = 1
+            elif interval_num == 12:
+                sub_interval = 4
+        elif interval_unit == "d": # 1 day only implementation
+            unit = "days"
+            sub_interval = 4
+            sub_interval_unit = "h"
+        elif interval_unit == "w":
+            unit = "weeks"
+            sub_interval = 1
+            sub_interval_unit = "d"
+        elif interval_unit == "m":
+            unit = "months"
+            sub_interval = 1
+            sub_interval_unit = "w"
+        else:
+            sub_interval = 1
+            sub_interval_unit = "m"
+            unit - "years"
+
+        start_time = f"{self.candle_lookback_length * interval_num} {unit} ago UTC"
+
+        # TODO remove start time...this is incorrect
+        return [f"{sub_interval}{sub_interval_unit}", start_time]
+
+
     def convertIntervals(self, interval):
         interval_unit = interval[-1]
         interval_num = int(interval[:-1])
@@ -81,23 +125,23 @@ class BinanceHelper(ExchangeHelper):
             months_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
             return [interval, f"{interval_num} months", f"{months_total} months ago UTC"]
 
-    def generate_indicators_for_dataset(self, df):
-        df.insert(0, "ADX_20_0", ta.ADX(df['high_0'], df['low_0'], df['close_0'], timeperiod=20))
-        df.insert(0, "SMA_5_0", ta.SMA(df['close_0'], 5))
-        df.insert(0, "SMA_20_0", ta.SMA(df['close_0'], 20))
-        df.insert(0, "EMA_20_0", ta.EMA(df['close_0'], 20))
-        df.insert(0, "rsi_5_0", ta.RSI(df['close_0'], 5))
-        df.insert(0, "rsi_14_0", ta.RSI(df['close_0'], 14))
+    def generate_indicators_for_dataset(self, df, prefix=""):
+        df.insert(0, f"{prefix}ADX_20_0", ta.ADX(df[f"{prefix}high_0"], df[f"{prefix}low_0"], df[f"{prefix}close_0"], timeperiod=20))
+        df.insert(0, f"{prefix}SMA_5_0", ta.SMA(df[f"{prefix}close_0"], 5))
+        df.insert(0, f"{prefix}SMA_20_0", ta.SMA(df[f"{prefix}close_0"], 20))
+        df.insert(0, f"{prefix}EMA_20_0", ta.EMA(df[f"{prefix}close_0"], 20))
+        df.insert(0, f"{prefix}rsi_5_0", ta.RSI(df[f"{prefix}close_0"], 5))
+        df.insert(0, f"{prefix}rsi_14_0", ta.RSI(df[f"{prefix}close_0"], 14))
 
-        dif, dea, bar = ta.MACD(df['close_0'].values, fastperiod=12, slowperiod=26, signalperiod=9)
-        df.insert(0, "macd_dif_0", dif)
-        df.insert(0, "macd_dea_0", dea)
-        df.insert(0, "macd_bar_0", bar)
+        dif, dea, bar = ta.MACD(df[f"{prefix}close_0"].values, fastperiod=12, slowperiod=26, signalperiod=9)
+        df.insert(0, f"{prefix}macd_dif_0", dif)
+        df.insert(0, f"{prefix}macd_dea_0", dea)
+        df.insert(0, f"{prefix}macd_bar_0", bar)
         
-        up, mid, low = ta.BBANDS(df['close_0'], timeperiod = 20)
-        df.insert(0, "low_band_20_0", low)
-        df.insert(0, "mid_band_20_0", mid)
-        df.insert(0, "up_band_20_0", up)
+        up, mid, low = ta.BBANDS(df[f"{prefix}close_0"], timeperiod = 20)
+        df.insert(0, f"{prefix}low_band_20_0", low)
+        df.insert(0, f"{prefix}mid_band_20_0", mid)
+        df.insert(0, f"{prefix}up_band_20_0", up)
 
         # Visualize
         # df[['close_0', 'SMA_5_0', 'EMA_20_0', 'up_band_20_0', 'mid_band_20_0', 'low_band_20_0']].head(100).plot(figsize=(24,12))
@@ -108,7 +152,7 @@ class BinanceHelper(ExchangeHelper):
         
         return df.dropna()
 
-    def clean_data(self, klines):
+    def clean_data(self, klines, sub_interval_offset=5):
         start_time = time.time()
 
         df = pd.DataFrame(
@@ -130,12 +174,16 @@ class BinanceHelper(ExchangeHelper):
 
         # Calculate Open/Close Difference
         df.insert(0, "diff_0", df["close_0"] - df["open_0"])
+        df.insert(0, f"diff_shift{sub_interval_offset}_0", df["close_0"] - df["open_0"].shift(-1*sub_interval_offset))
 
         df = self.generate_indicators_for_dataset(df)
 
-        # Up/Down Label
+        # Up/Down Label (no applid to sub interval dataset)
         df.insert(0, "was_up_0", df["diff_0"] > 0)
         df = df.astype({ "was_up_0": np.int8 })
+        
+        df.insert(0, f"was_up_shift{sub_interval_offset}_0", df[f"diff_shift{sub_interval_offset}_0"] > 0)
+        df = df.astype({ f"was_up_shift{sub_interval_offset}_0": np.int8 })
 
         # Human readable datetime
         df.insert(0, "close_time_dt_0", pd.to_datetime(df["close_time_0"], unit='ms'))
@@ -148,7 +196,10 @@ class BinanceHelper(ExchangeHelper):
         # Reverse row order
         df = df.iloc[::-1]
 
-        print(f"--- {round((time.time() - start_time), 1)}s sseconds to clean data ---")
+        # every sub_interval_offset-th row
+        df = df.iloc[::sub_interval_offset, :]
+
+        print(f"--- {round((time.time() - start_time), 1)}s seconds to clean data ---")
         return df
 
 
@@ -169,7 +220,7 @@ class BinanceHelper(ExchangeHelper):
         start = datetime.fromtimestamp(start_time)
         print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} request made at {start.strftime('%Y-%m-%d %H:%M:%S')} ---")
 
-        return klines[1:] #.pop(0) # removing the first element (half-backed/ongoing current candle)
+        return klines[1:] #.pop(0) # removing the first element (half-baked/ongoing current candle)
 
 
     ############################################
@@ -193,7 +244,7 @@ class BinanceHelper(ExchangeHelper):
             # Update suffix to indicate past index
             df_with_dropped_cols = df_with_dropped_cols.rename(columns = lambda x : str(x)[:prevSuffixOffset]).add_suffix(f"_{i}")
 
-            # Drop first row
+            # Drop first row (shift every row up by 1)
             df_with_dropped_cols = df_with_dropped_cols.shift(periods=-1, axis="rows")
 
             # Concatenate
@@ -201,8 +252,7 @@ class BinanceHelper(ExchangeHelper):
             dataset = pd.concat(updated_df, axis=1)
 
         # Dropping the last "candle_lookback_length" rows as they will have NaN values due to shifting
-        dataset = dataset.iloc[:(-1 * self.candle_lookback_length
-)]
+        dataset = dataset.iloc[:(-1 * self.candle_lookback_length)]
 
         return dataset
 
@@ -255,7 +305,8 @@ class BinanceHelper(ExchangeHelper):
                 klines = self.generate_klines(pair_sans_slash, interval, pair_as_key=pair_underscore)
                 cleaned_data = self.clean_data(klines)
         
-                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)    
+                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)  
+                breakpoint()  
                 # dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 

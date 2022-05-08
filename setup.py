@@ -92,13 +92,12 @@ if __name__ == "__main__":
 
     # if not args.liveMode:
     score = predict(model, X_test_scaled, y_test)
-
     
-    if not live_mode:
+    if not args.liveMode:
         X_train_close = X_train["close_0"]
         X_test_close = X_test["close_0"]
 
-        graph, (plot1, plot2) = plt.subplots(1, 2)
+        graph, (plot1, plot2, plot3) = plt.subplots(1, 3)
 
         test_accuracy = (score[1] * 100)
         plot1.set_title(f"Temporal Training Split for ({args.pair}) / Test accuracy {test_accuracy}%")
@@ -112,6 +111,11 @@ if __name__ == "__main__":
         plot2.plot(X_test["open_0"], color='b', label=f"X_test_open: length - {len(X_test_close)}")
         plot2.invert_xaxis()
         plot2.legend()
+
+        plot3.set_title("Sample weighting")
+        plot3.plot(sample_weight, color='g', label=f"Sample Weight: length - {len(sample_weight)}")
+        plot3.invert_xaxis()
+        plot3.legend()
         
         graph.tight_layout()
         plt.show()
