@@ -53,47 +53,57 @@ class BinanceHelper(ExchangeHelper):
         self.full_dataset = None
 
     def generate_sub_interval_data(self, interval_num, interval_unit):
-        unit = None
-
         sub_interval = None
         sub_interval_unit = interval_unit
+        offset = interval_num
 
         if interval_unit == "m":
-            unit = "minutes"
-            if interval_num == 5:
+            if interval_num == 1:
                 sub_interval = 1
-            elif interval_num == 15 or interval_num == 30:
+            elif interval_num == 5:
+                sub_interval = 1
+            elif interval_num == 15:
+                sub_interval = 3
+            elif interval_num == 30:
                 sub_interval = 5
+
+            offset = interval_num / sub_interval if interval_num != 1 else 0
+
         elif interval_unit == "h":
-            unit = "hours"
             if interval_num == 1:
                 sub_interval = 15
                 sub_interval_unit = "m"
+                offset = 4
             elif interval_num == 4 or interval_num == 6:
                 sub_interval = 1
+                offset = interval_num / sub_interval
             elif interval_num == 12:
                 sub_interval = 4
+                offset = interval_num / sub_interval
+
         elif interval_unit == "d": # 1 day only implementation
-            unit = "days"
             sub_interval = 4
             sub_interval_unit = "h"
+            offset = 6
+            
         elif interval_unit == "w":
-            unit = "weeks"
             sub_interval = 1
             sub_interval_unit = "d"
+            offset = 7
+
         elif interval_unit == "m":
-            unit = "months"
             sub_interval = 1
             sub_interval_unit = "w"
-        else:
+            offset = 4
+
+        else: # year
             sub_interval = 1
             sub_interval_unit = "m"
-            unit - "years"
+            offset = 12
 
-        start_time = f"{self.candle_lookback_length * interval_num} {unit} ago UTC"
+        # start_time = f"{self.candle_lookback_length * interval_num} {unit} ago UTC"
 
-        # TODO remove start time...this is incorrect
-        return [f"{sub_interval}{sub_interval_unit}", start_time]
+        return sub_interval, sub_interval_unit, int(offset)
 
 
     def convertIntervals(self, interval):
@@ -101,29 +111,31 @@ class BinanceHelper(ExchangeHelper):
         interval_num = int(interval[:-1])
         indicators_cushion = self.candle_lookback_length * 500 # cushion is in "interval_units"
         binance_cushion = 1 # api goes by datetime so adding one extra day/week/month cushion
+        
+        sub_interval, sub_interval_unit, offset = self.generate_sub_interval_data(interval_num, interval_unit)
 
         if interval_unit == "m":
             minutes_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion
             hours_total = int(math.ceil(minutes_total / 60)) + 1 
             days_total = int(math.ceil(minutes_total / 1440)) + binance_cushion
-            return [interval, f"{interval_num} minutes", f"{days_total} days ago UTC"]
+            return interval, f"{interval_num} minutes", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
         
         elif interval_unit == "h":
             hours_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion
             days_total = int(math.ceil(hours_total / 24)) + binance_cushion
-            return [interval, f"{interval_num} hours", f"{days_total} days ago UTC"]
+            return interval, f"{interval_num} hours", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
 
         elif interval_unit == "d":
             days_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
-            return [interval, f"{interval_num} days", f"{days_total} days ago UTC"]
+            return interval, f"{interval_num} days", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
         
         elif interval_unit == "w":
             weeks_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
-            return [interval, f"{interval_num} weeks", f"{weeks_total} weeks ago UTC"]
+            return interval, f"{interval_num} weeks", f"{weeks_total} weeks ago UTC", sub_interval, sub_interval_unit, offset
         
         elif interval_unit == "M":
             months_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
-            return [interval, f"{interval_num} months", f"{months_total} months ago UTC"]
+            return interval, f"{interval_num} months", f"{months_total} months ago UTC", sub_interval, sub_interval_unit, offset
 
     def generate_indicators_for_dataset(self, df, prefix=""):
         df.insert(0, f"{prefix}ADX_20_0", ta.ADX(df[f"{prefix}high_0"], df[f"{prefix}low_0"], df[f"{prefix}close_0"], timeperiod=20))
@@ -152,7 +164,7 @@ class BinanceHelper(ExchangeHelper):
         
         return df.dropna()
 
-    def clean_data(self, klines, sub_interval_offset=5):
+    def clean_data(self, klines, sub_interval_offset):
         start_time = time.time()
 
         df = pd.DataFrame(
@@ -174,7 +186,9 @@ class BinanceHelper(ExchangeHelper):
 
         # Calculate Open/Close Difference
         df.insert(0, "diff_0", df["close_0"] - df["open_0"])
-        df.insert(0, f"diff_shift{sub_interval_offset}_0", df["close_0"] - df["open_0"].shift(-1*sub_interval_offset))
+        
+        if sub_interval_offset != 0:
+            df.insert(0, f"diff_shift{sub_interval_offset}_0", df["close_0"] - df["open_0"].shift(-1*sub_interval_offset))
 
         df = self.generate_indicators_for_dataset(df)
 
@@ -182,8 +196,12 @@ class BinanceHelper(ExchangeHelper):
         df.insert(0, "was_up_0", df["diff_0"] > 0)
         df = df.astype({ "was_up_0": np.int8 })
         
-        df.insert(0, f"was_up_shift{sub_interval_offset}_0", df[f"diff_shift{sub_interval_offset}_0"] > 0)
-        df = df.astype({ f"was_up_shift{sub_interval_offset}_0": np.int8 })
+        if sub_interval_offset != 0:
+            # every sub_interval_offset-th row
+            df = df.iloc[::sub_interval_offset, :]
+
+            df.insert(0, f"was_up_shift{sub_interval_offset}_0", df[f"diff_shift{sub_interval_offset}_0"] > 0)
+            df = df.astype({ f"was_up_shift{sub_interval_offset}_0": np.int8 })
 
         # Human readable datetime
         df.insert(0, "close_time_dt_0", pd.to_datetime(df["close_time_0"], unit='ms'))
@@ -196,21 +214,25 @@ class BinanceHelper(ExchangeHelper):
         # Reverse row order
         df = df.iloc[::-1]
 
-        # every sub_interval_offset-th row
-        df = df.iloc[::sub_interval_offset, :]
-
+        # breakpoint()
         print(f"--- {round((time.time() - start_time), 1)}s seconds to clean data ---")
         return df
 
 
-    def generate_klines(self, pair_str, interval, pair_as_key):
+    def generate_klines(self, pair_str, interval, pair_as_key, use_sub_intervals=False):
         start_time = time.time()
-        interval_data = self.convertIntervals(interval)
+        # interval, f"{interval_num} hours", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
+        # interval_data = self.convertIntervals(interval)
+        _, _, start_str, sub_interval, sub_interval_unit, offset  = self.convertIntervals(interval)
+        
+
+        interval = f"{sub_interval}{sub_interval_unit}" if use_sub_intervals else interval
+        offset = offset if use_sub_intervals else 0
 
         klines = self.client.get_historical_klines(
             symbol=pair_str,
-            interval=interval_data[0],
-            start_str=interval_data[2],
+            interval=interval,
+            start_str=start_str,
             end_str=None,
             klines_type=self.klines_type
         )
@@ -220,7 +242,7 @@ class BinanceHelper(ExchangeHelper):
         start = datetime.fromtimestamp(start_time)
         print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} request made at {start.strftime('%Y-%m-%d %H:%M:%S')} ---")
 
-        return klines[1:] #.pop(0) # removing the first element (half-baked/ongoing current candle)
+        return klines[1:], offset #.pop(0) # removing the first element (half-baked/ongoing current candle)
 
 
     ############################################
@@ -295,18 +317,28 @@ class BinanceHelper(ExchangeHelper):
 
         return dataset
 
-    def generate_datasets(self):    
+    def generate_datasets(self, use_sub_intervals=False):    
         for pair in self.pairs_of_interest:
             sets = [] 
             pair_sans_slash = pair.replace('/', '')
             pair_underscore = pair.replace('/', '_')
 
             for interval in self.intervals_of_interest:  
-                klines = self.generate_klines(pair_sans_slash, interval, pair_as_key=pair_underscore)
-                cleaned_data = self.clean_data(klines)
+                klines, offset = self.generate_klines(
+                    pair_sans_slash,
+                    interval,
+                    pair_as_key=pair_underscore,
+                    use_sub_intervals=use_sub_intervals
+                )
+
+                # breakpoint()
+                cleaned_data = self.clean_data(
+                    klines,
+                    sub_interval_offset=offset
+                )
         
                 dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)  
-                breakpoint()  
+                # breakpoint()  
                 # dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 
@@ -316,7 +348,6 @@ class BinanceHelper(ExchangeHelper):
                     "interval": interval,
                     "dataset": dataset
                 })
-
 
                 temp_dataset = [self.full_dataset, dataset]
                 self.full_dataset = pd.concat(temp_dataset, axis=0)

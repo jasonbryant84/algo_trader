@@ -19,6 +19,7 @@ if __name__ == "__main__":
         pair=args.pair,
         interval=args.interval,
         candle_lookback_length=args.n_candles,
+        use_sub_intervals=True,
         cloudStorage=args.cloudStorage
     )
 

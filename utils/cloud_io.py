@@ -45,7 +45,7 @@ def fetch_dataset(pair, interval, candle_lookback_length):
         candle_lookback_length=candle_lookback_length
     )
 
-    [_, dataset] = helper.generate_datasets()
+    [_, dataset] = helper.generate_datasets(use_sub_intervals=True)
 
     return dataset
 

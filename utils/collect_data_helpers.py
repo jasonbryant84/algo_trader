@@ -2,7 +2,7 @@ import time
 from utils.helpers import BinanceHelper
 from utils.cloud_io import write_dataset_csvs
 
-def build_datasets(pair, interval, candle_lookback_length, cloudStorage, noStorage):
+def build_datasets(pair, interval, candle_lookback_length, use_sub_intervals, cloudStorage, noStorage):
     # Alter the following 2 arrays if desired
     # Entering a pair and interval in command line will take precedent
     pairs_of_interest = [pair] if pair else ["XRP/USDT"]
@@ -17,7 +17,8 @@ def build_datasets(pair, interval, candle_lookback_length, cloudStorage, noStora
 
     print('\nGenerating dataset(s)...')
     start_time = time.time()
-    [full_dataset, datasets] = helper.generate_datasets()
+    print('1', use_sub_intervals)
+    [full_dataset, datasets] = helper.generate_datasets(use_sub_intervals)
     print(f"--- {round((time.time() - start_time), 1)}s to generate dataset ---\n")
 
     print('noStorage', noStorage)
