@@ -32,6 +32,7 @@ if __name__ == "__main__":
     start_time = time.time()
     print(f"{bcolors.OKCYAN}----- Trade -----{bcolors.ENDC}")
 
+    # Setup parameters
     pair = args.pair
     pair_sans_slash = pair.replace("/", "_")
     interval = args.interval

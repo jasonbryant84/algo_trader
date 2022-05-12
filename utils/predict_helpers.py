@@ -155,7 +155,6 @@ def threshold_testing(y_test, y_pred, thresholds):
 def predict(model, X_test, y_test):
     print(f"\n--- Keras Evaluate - Predictions (threshold = 0.5 by default) ---") # for evaluate method below
     score = model.evaluate(X_test, y_test, verbose=1)
-    print(f"score: {score}\n")
 
     return score
 

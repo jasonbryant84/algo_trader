@@ -149,7 +149,7 @@ class BinanceHelper(ExchangeHelper):
         df.insert(0, f"{prefix}macd_dif_0", dif)
         df.insert(0, f"{prefix}macd_dea_0", dea)
         df.insert(0, f"{prefix}macd_bar_0", bar)
-        
+
         up, mid, low = ta.BBANDS(df[f"{prefix}close_0"], timeperiod = 20)
         df.insert(0, f"{prefix}low_band_20_0", low)
         df.insert(0, f"{prefix}mid_band_20_0", mid)
@@ -183,21 +183,31 @@ class BinanceHelper(ExchangeHelper):
             "taker_buy_quote_asset_vol_0": np.float64,
         }
         df = df.astype(new_dtypes)
+        
+        # Generating Indicators
+        df = self.generate_indicators_for_dataset(df)
 
         # Calculate Open/Close Difference
         df.insert(0, "diff_0", df["close_0"] - df["open_0"])
-        
-        if sub_interval_offset != 0:
-            df.insert(0, f"diff_shift{sub_interval_offset}_0", df["close_0"] - df["open_0"].shift(-1*sub_interval_offset))
-
-        df = self.generate_indicators_for_dataset(df)
 
         # Up/Down Label (no applid to sub interval dataset)
         df.insert(0, "was_up_0", df["diff_0"] > 0)
         df = df.astype({ "was_up_0": np.int8 })
-        
+
+        # Reverse row order (to create descending order)
+        df = df.iloc[::-1]
+
+        # Must be after generate_indicators_for_dataset due to NaN in "shift" column below
         if sub_interval_offset != 0:
-            # every sub_interval_offset-th row
+            close_col = df["close_0"][:(-1*sub_interval_offset)]
+            open_offset_col = df["close_0"].shift(-1*sub_interval_offset)[:(-1*sub_interval_offset)]
+
+            df.insert(0, f"diff_shift{sub_interval_offset}_0", close_col - open_offset_col)
+
+            # Drop last offset (number) rows
+            df = df[:(-1*sub_interval_offset)]
+    
+            # Keep only ever offset-th row
             df = df.iloc[::sub_interval_offset, :]
 
             df.insert(0, f"was_up_shift{sub_interval_offset}_0", df[f"diff_shift{sub_interval_offset}_0"] > 0)
@@ -211,38 +221,34 @@ class BinanceHelper(ExchangeHelper):
         del df["close_time_0"]
         del df["ignore_0"]
 
-        # Reverse row order
-        df = df.iloc[::-1]
-
-        # breakpoint()
         print(f"--- {round((time.time() - start_time), 1)}s seconds to clean data ---")
         return df
 
 
     def generate_klines(self, pair_str, interval, pair_as_key, use_sub_intervals=False):
         start_time = time.time()
-        # interval, f"{interval_num} hours", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
-        # interval_data = self.convertIntervals(interval)
+
         _, _, start_str, sub_interval, sub_interval_unit, offset  = self.convertIntervals(interval)
         
-
         interval = f"{sub_interval}{sub_interval_unit}" if use_sub_intervals else interval
         offset = offset if use_sub_intervals else 0
 
+        print(f"get_historical_klines starting: {datetime.utcnow()}")
         klines = self.client.get_historical_klines(
             symbol=pair_str,
             interval=interval,
             start_str=start_str,
-            end_str=None,
             klines_type=self.klines_type
         )
+        print(f"get_historical_klines ending:   {datetime.utcnow()}")
 
         self.datasets[pair_as_key] = {"sets": []}
 
         start = datetime.fromtimestamp(start_time)
         print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} request made at {start.strftime('%Y-%m-%d %H:%M:%S')} ---")
 
-        return klines[1:], offset #.pop(0) # removing the first element (half-baked/ongoing current candle)
+        
+        return klines[:-1], offset # drop last kline as it's half-baked (it's the most recent candle, descending order klines)
 
 
     ############################################
@@ -331,14 +337,12 @@ class BinanceHelper(ExchangeHelper):
                     use_sub_intervals=use_sub_intervals
                 )
 
-                # breakpoint()
                 cleaned_data = self.clean_data(
                     klines,
                     sub_interval_offset=offset
                 )
         
                 dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)  
-                # breakpoint()  
                 # dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 

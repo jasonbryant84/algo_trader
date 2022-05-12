@@ -22,7 +22,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     start_time = time.time()
-    print(f"{bcolors.OKCYAN}----- Setup -----{bcolors.ENDC}")
+    print(f"{bcolors.OKCYAN}----- Setup -----{bcolors.ENDC}", datetime.datetime.utcnow())
 
     interval = args.interval
     candles = args.n_candles
@@ -55,7 +55,6 @@ if __name__ == "__main__":
         filename_model = f"{args.pair.replace('/','_')}_{args.interval}_{args.n_candles}candles_{month}-{day}-{year}_{hour}-{minute}"
 
         print('**************************** SHAPE: ', dataset.shape)
-
 
     # Predict
     ##############################################

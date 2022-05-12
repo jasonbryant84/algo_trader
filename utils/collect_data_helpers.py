@@ -17,7 +17,6 @@ def build_datasets(pair, interval, candle_lookback_length, use_sub_intervals, cl
 
     print('\nGenerating dataset(s)...')
     start_time = time.time()
-    print('1', use_sub_intervals)
     [full_dataset, datasets] = helper.generate_datasets(use_sub_intervals)
     print(f"--- {round((time.time() - start_time), 1)}s to generate dataset ---\n")
 
