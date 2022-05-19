@@ -106,35 +106,42 @@ class BinanceHelper(ExchangeHelper):
         return sub_interval, sub_interval_unit, int(offset)
 
 
-    def convertIntervals(self, interval):
+    def convertIntervals(self, interval, use_sub_intervals):
         interval_unit = interval[-1]
         interval_num = int(interval[:-1])
         indicators_cushion = self.candle_lookback_length * 500 # cushion is in "interval_units"
         binance_cushion = 1 # api goes by datetime so adding one extra day/week/month cushion
         
-        sub_interval, sub_interval_unit, offset = self.generate_sub_interval_data(interval_num, interval_unit)
+        sub_interval = None
+        sub_interval_unit = None
+        offset = None
+        window_factor = 1 
+
+        if use_sub_intervals: 
+            sub_interval, sub_interval_unit, offset = self.generate_sub_interval_data(interval_num, interval_unit)
+            window_factor = int(math.ceil(offset / 2))
 
         if interval_unit == "m":
             minutes_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion
             hours_total = int(math.ceil(minutes_total / 60)) + 1 
-            days_total = int(math.ceil(minutes_total / 1440)) + binance_cushion
+            days_total = int(math.ceil(minutes_total / 1440) * window_factor) + binance_cushion
             return interval, f"{interval_num} minutes", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
         
         elif interval_unit == "h":
             hours_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion
-            days_total = int(math.ceil(hours_total / 24)) + binance_cushion
+            days_total = int(math.ceil(hours_total / 24) * window_factor) + binance_cushion
             return interval, f"{interval_num} hours", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
 
         elif interval_unit == "d":
-            days_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
+            days_total = ((self.candle_lookback_length + 1) * interval_num * window_factor) + indicators_cushion + binance_cushion
             return interval, f"{interval_num} days", f"{days_total} days ago UTC", sub_interval, sub_interval_unit, offset
         
         elif interval_unit == "w":
-            weeks_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
+            weeks_total = ((self.candle_lookback_length + 1) * interval_num * window_factor) + indicators_cushion + binance_cushion
             return interval, f"{interval_num} weeks", f"{weeks_total} weeks ago UTC", sub_interval, sub_interval_unit, offset
         
         elif interval_unit == "M":
-            months_total = ((self.candle_lookback_length + 1) * interval_num) + indicators_cushion + binance_cushion
+            months_total = ((self.candle_lookback_length + 1) * interval_num * window_factor) + indicators_cushion + binance_cushion
             return interval, f"{interval_num} months", f"{months_total} months ago UTC", sub_interval, sub_interval_unit, offset
 
     def generate_indicators_for_dataset(self, df, prefix=""):
@@ -164,7 +171,7 @@ class BinanceHelper(ExchangeHelper):
         
         return df.dropna()
 
-    def clean_data(self, klines, sub_interval_offset):
+    def clean_data(self, klines, sub_interval_offset, sub_interval, sub_interval_unit):
         start_time = time.time()
 
         df = pd.DataFrame(
@@ -191,44 +198,68 @@ class BinanceHelper(ExchangeHelper):
         df.insert(0, "diff_0", df["close_0"] - df["open_0"])
 
         # Up/Down Label (no applid to sub interval dataset)
-        df.insert(0, "was_up_0", df["diff_0"] > 0)
+        df.insert(0, "was_up_0", df["diff_0"] >= 0)
         df = df.astype({ "was_up_0": np.int8 })
 
         # Reverse row order (to create descending order)
         df = df.iloc[::-1]
 
-        # Must be after generate_indicators_for_dataset due to NaN in "shift" column below
-        if sub_interval_offset != 0:
-            close_col = df["close_0"][:(-1*sub_interval_offset)]
-            open_offset_col = df["close_0"].shift(-1*sub_interval_offset)[:(-1*sub_interval_offset)]
-
-            df.insert(0, f"diff_shift{sub_interval_offset}_0", close_col - open_offset_col)
-
-            # Drop last offset (number) rows
-            df = df[:(-1*sub_interval_offset)]
-    
-            # Keep only ever offset-th row
-            df = df.iloc[::sub_interval_offset, :]
-
-            df.insert(0, f"was_up_shift{sub_interval_offset}_0", df[f"diff_shift{sub_interval_offset}_0"] > 0)
-            df = df.astype({ f"was_up_shift{sub_interval_offset}_0": np.int8 })
-
         # Human readable datetime
         df.insert(0, "close_time_dt_0", pd.to_datetime(df["close_time_0"], unit='ms'))
+
+        # Calibrating dataset to center on the correct/necessary sub-interval(s)
+        # count = 0
+        # max_tries = 100
+        # calibrated = None
+
+        # while True:
+        #     if count >= max_tries:
+        #         exit() # shit's broken man
+
+        #     if sub_interval_unit == 'm':
+        #         first_row_minute = int(df.iloc[0]["close_time_dt_0"].strftime("%M"))
+        #         calibrated = (first_row_minute + sub_interval) % sub_interval_offset == 0
+        #     elif sub_interval_unit == 'h':
+        #         first_row_hour = int(df.iloc[0]["close_time_dt_0"].strftime("%H"))
+        #         calibrated = (first_row_hour + sub_interval) % sub_interval_offset == 0
+        #     else:
+        #         exit() # need to update code to handle day subintervals if we wanna do all o' that
+
+        #     if not calibrated:
+        #         df = df.iloc[1: , :]
+        #         count = count + 1
+        #     else:
+        #         break
+
+        # Must be after generate_indicators_for_dataset due to NaN in "shift" column below
+        # if sub_interval_offset != 0:
+        #     close_col = df["close_0"][:(-1*sub_interval_offset)]
+        #     open_offset_col = df["open_0"].shift(-1 * (sub_interval_offset - 1))[:(-1 * (sub_interval_offset - 1))]
+
+        #     df.insert(1, f"diff_shift{sub_interval_offset}_0", close_col - open_offset_col)
+
+        #     # Drop last offset (number) rows
+        #     df = df[:(-1*sub_interval_offset)]
+    
+        #     # Keep only ever offset-th row
+        #     df = df.iloc[::sub_interval_offset, :]
+
+        #     df.insert(1, f"was_up_shift{sub_interval_offset}_0", df[f"diff_shift{sub_interval_offset}_0"] >= 0)
+        #     df = df.astype({ f"was_up_shift{sub_interval_offset}_0": np.int8 })
 
         # Drop Open and Close times and Ignore column (maybe this is important info from Binance)
         del df["open_time_0"]
         del df["close_time_0"]
         del df["ignore_0"]
-
+        
         print(f"--- {round((time.time() - start_time), 1)}s seconds to clean data ---")
         return df
 
 
-    def generate_klines(self, pair_str, interval, pair_as_key, use_sub_intervals=False):
+    def generate_klines(self, pair_str, interval, pair_as_key, use_sub_intervals=False, use_for_prediction=False):
         start_time = time.time()
 
-        _, _, start_str, sub_interval, sub_interval_unit, offset  = self.convertIntervals(interval)
+        _, _, start_str, sub_interval, sub_interval_unit, offset  = self.convertIntervals(interval, use_sub_intervals)
         
         interval = f"{sub_interval}{sub_interval_unit}" if use_sub_intervals else interval
         offset = offset if use_sub_intervals else 0
@@ -247,15 +278,58 @@ class BinanceHelper(ExchangeHelper):
         start = datetime.fromtimestamp(start_time)
         print(f"--- {round((time.time() - start_time), 1)}s seconds to retrieve Binance data on {pair_str} with interval {interval} request made at {start.strftime('%Y-%m-%d %H:%M:%S')} ---")
 
-        
-        return klines[:-1], offset # drop last kline as it's half-baked (it's the most recent candle, descending order klines)
+        klines = klines if use_for_prediction else klines[:-1] # drop last kline as it's half-baked (it's the most recent candle, descending order klines)
+
+        return klines, offset, sub_interval, sub_interval_unit
 
 
     ############################################
     # Generating Dataset Logic                 #
     ############################################
+    def set_according_to_interval(self, df, sub_interval, sub_interval_unit, sub_interval_offset):
+        # Calibrating dataset to center on the correct/necessary sub-interval(s)
+        count = 0
+        max_tries = 100
+        calibrated = None
 
-    def generate_concatinated_columns_for_dataset(self, cleaned_data):
+        while True:
+            if count >= max_tries:
+                exit() # shit's broken man
+
+            if sub_interval_unit == 'm':
+                first_row_minute = int(df.iloc[0]["close_time_dt_0"].strftime("%M"))
+                calibrated = (first_row_minute + sub_interval) % sub_interval_offset == 0
+            elif sub_interval_unit == 'h':
+                first_row_hour = int(df.iloc[0]["close_time_dt_0"].strftime("%H"))
+                calibrated = (first_row_hour + sub_interval) % sub_interval_offset == 0
+            else:
+                exit() # need to update code to handle day subintervals if we wanna do all o' that
+
+            if not calibrated:
+                df = df.iloc[1: , :]
+                count = count + 1
+            else:
+                break
+
+        # Must be after generate_indicators_for_dataset due to NaN in "shift" column below
+        if sub_interval_offset != 0:
+            close_col = df["close_0"][:(-1*sub_interval_offset)]
+            open_offset_col = df["open_0"].shift(-1 * (sub_interval_offset - 1))[:(-1 * (sub_interval_offset - 1))]
+
+            df.insert(1, f"diff_shift{sub_interval_offset}_0", close_col - open_offset_col)
+
+            # Drop last offset (number) rows
+            df = df[:(-1*sub_interval_offset)]
+    
+            # Keep only ever offset-th row
+            df = df.iloc[::sub_interval_offset, :]
+
+            df.insert(1, f"was_up_shift{sub_interval_offset}_0", df[f"diff_shift{sub_interval_offset}_0"] >= 0)
+            df = df.astype({ f"was_up_shift{sub_interval_offset}_0": np.int8 })
+
+        return df
+
+    def generate_concatinated_columns_for_dataset(self, cleaned_data, sub_interval, sub_interval_unit, sub_interval_offset):
         # Model features
         dataset = cleaned_data.copy()
 
@@ -281,6 +355,14 @@ class BinanceHelper(ExchangeHelper):
 
         # Dropping the last "candle_lookback_length" rows as they will have NaN values due to shifting
         dataset = dataset.iloc[:(-1 * self.candle_lookback_length)]
+
+        # Drop non-interval values
+        dataset = self.set_according_to_interval(
+            dataset,
+            sub_interval,
+            sub_interval_unit,
+            sub_interval_offset
+        )
 
         return dataset
 
@@ -323,26 +405,34 @@ class BinanceHelper(ExchangeHelper):
 
         return dataset
 
-    def generate_datasets(self, use_sub_intervals=False):    
+    def generate_datasets(self, use_sub_intervals=False, use_for_prediction=False):    
         for pair in self.pairs_of_interest:
             sets = [] 
             pair_sans_slash = pair.replace('/', '')
             pair_underscore = pair.replace('/', '_')
 
             for interval in self.intervals_of_interest:  
-                klines, offset = self.generate_klines(
+                klines, offset, sub_interval, sub_interval_unit = self.generate_klines(
                     pair_sans_slash,
                     interval,
                     pair_as_key=pair_underscore,
-                    use_sub_intervals=use_sub_intervals
+                    use_sub_intervals=use_sub_intervals,
+                    use_for_prediction=use_for_prediction
                 )
 
                 cleaned_data = self.clean_data(
                     klines,
-                    sub_interval_offset=offset
+                    sub_interval_offset=offset,
+                    sub_interval=sub_interval,
+                    sub_interval_unit=sub_interval_unit
                 )
         
-                dataset = self.generate_concatinated_columns_for_dataset(cleaned_data)  
+                dataset = self.generate_concatinated_columns_for_dataset(
+                    cleaned_data,
+                    sub_interval=sub_interval,
+                    sub_interval_unit=sub_interval_unit,
+                    sub_interval_offset=offset
+                )  
                 # dataset = self.generate_pairs_dataset(dataset, curr_pair_of_interest=pair_underscore)
                 dataset = self.generate_time_info_for_dataset(dataset, interval)
 
@@ -358,7 +448,7 @@ class BinanceHelper(ExchangeHelper):
 
             self.datasets[pair_underscore]["sets"] = sets
         
-        return [self.full_dataset, self.datasets]
+        return self.full_dataset, self.datasets, sub_interval, sub_interval_unit
 
     def __str__(self):
         return f"name: {self.name} klines_type: {self.klines_type}"

@@ -38,14 +38,17 @@ def save_model(pair, interval, candles, filename_model, model, cloudStorage):
         print(e)
         return False
 
-def fetch_dataset(pair, interval, candle_lookback_length):
+def fetch_dataset(pair, interval, candle_lookback_length, use_sub_intervals=True, use_for_prediction=True):
     helper = BinanceHelper(
         pairs_of_interest=[pair],
         intervals_of_interest=[interval],
         candle_lookback_length=candle_lookback_length
     )
 
-    [_, dataset] = helper.generate_datasets(use_sub_intervals=True)
+    _, dataset, sub_interval, sub_interval_unit = helper.generate_datasets(
+        use_sub_intervals,
+        use_for_prediction
+    )
 
     return dataset
 
@@ -56,7 +59,7 @@ def fetch_latest_candles(pair, interval, candle_lookback_length):
         candle_lookback_length=candle_lookback_length
     )
  
-    klines = helper.generate_klines(
+    klines, _, _, _ = helper.generate_klines(
         pair_str=pair.replace("/",""),
         interval=interval,
         pair_as_key=pair.replace("/","_")

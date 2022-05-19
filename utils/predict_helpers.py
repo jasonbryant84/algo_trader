@@ -15,7 +15,7 @@ from sklearn.metrics import confusion_matrix
 
 bucket_name = os.environ["GCP_CLOUD_STORAGE_BUCKET"]
 
-def setup_features_and_labels(pair, interval, candle_lookback_length, filename, loadLocalData, noStorage, dataset):
+def setup_features_and_labels(pair, interval, candle_lookback_length, filename, loadLocalData, noStorage, dataset, interval_num):
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = "google-credentials.json"
 
     try:
@@ -34,11 +34,13 @@ def setup_features_and_labels(pair, interval, candle_lookback_length, filename, 
 
         # skip over index, datetime, was_up (label - classification), diff(label - regression)
         features = data.iloc[:,2 : n_cols_in_data] if noStorage else data.iloc[:,3 : n_cols_in_data]
-        features = features[:-1]
+        features = features[1:] # dropping first row as we have no label for it yet
+        features = features.reset_index(drop=True) # reset indices to base 0
 
-        labels = data["was_up_0"]
-        labels = labels.shift(periods=-1, axis="rows")
-        labels = labels[:-1]
+        labels = data[f"was_up_shift{interval_num}_0"]
+        labels = labels.shift(periods=1, axis="rows") # pushing what will be the labels down one row as it is now the "future" label
+        labels = labels[1:] # dropping first row as we have no label for it yet
+        labels = labels.reset_index(drop=True) # reset indices to base 0
 
         n_rows = features.shape[0]
         n_cols = features.shape[1]
@@ -58,7 +60,7 @@ def setup_training_and_test_data(labels, features, live_mode):
     # Random Test Split
     # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
-    test_size = 1 if live_mode else 24 # int(len(X) * 0.05)
+    test_size = 1 if live_mode else 12 # 24 # int(len(X) * 0.05)
     offset = 0
     X_train, X_test = X[test_size + offset:len(X)], X[0 + offset : test_size + offset]
     y_train, y_test = y[test_size + offset:len(X)], y[0 + offset : test_size + offset]
@@ -83,11 +85,11 @@ def setup_nn(X_train, y_train, n_cols, n_epochs = 3, learning_rate = 0.01):
     model.add(Dense(n_cols, activation='relu', input_shape=(n_cols,)))
 
     model.add(Dense(n_cols, activation='relu'))
-    model.add(Dropout(0.1)) # TODO consider removing the dropouts
+    # model.add(Dropout(0.1)) # TODO consider removing the dropouts
     model.add(Dense(n_cols, activation='relu'))
-    model.add(Dropout(0.1))
+    # model.add(Dropout(0.1))
     model.add(Dense(n_cols, activation='relu'))
-    model.add(Dropout(0.1))
+    # model.add(Dropout(0.1))
 
     model.add(Dense(1, activation='sigmoid')) # Classification activation function
     model.compile(
@@ -154,11 +156,13 @@ def threshold_testing(y_test, y_pred, thresholds):
 
 def predict(model, X_test, y_test):
     print(f"\n--- Keras Evaluate - Predictions (threshold = 0.5 by default) ---") # for evaluate method below
+    
     score = model.evaluate(X_test, y_test, verbose=1)
+    y_test_predictions = model.predict(X_test).flatten()
 
-    return score
+    return (score[1] * 100), np.where(y_test_predictions > 0.5, 1, 0)
 
-    # y_pred = model.predict(X_test).flatten()
+    # y_pred = model.predict(X_test).flatten() # sigmoid output between 0 and 1
     # confusion_matrices = threshold_testing(
     #     y_test,
     #     y_pred,

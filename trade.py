@@ -39,9 +39,16 @@ if __name__ == "__main__":
     candle_lookback_length = args.n_candles
 
     # maybe leverage dataset stored (csv or db/sql) or just generate since we gotta fetch anyway
-    data = fetch_dataset(pair, interval, candle_lookback_length)
+    data = fetch_dataset(
+        pair,
+        interval,
+        candle_lookback_length,
+        use_sub_intervals=True,
+        use_for_prediction=True
+    )
     first_row = data[pair_sans_slash]["sets"][0]["dataset"].iloc[:1] # []:1] is Dataframe [0] is Series
 
+    print('first_row', first_row)
     closing_time = first_row["close_time_dt_0"]
     del first_row["close_time_dt_0"]
     del first_row["was_up_0"]
@@ -78,9 +85,10 @@ if __name__ == "__main__":
     prediction_time = datetime.now(tz=pytz.UTC).strftime("%Y-%m-%d %H:%M:%S")
     buy_sell = buy_sell_array[0][0]
     buy_sell_str = "Buy" if buy_sell == 1 else "Sell"
+    color = bcolors.OKGREEN if buy_sell == 1 else bcolors.FAIL
 
     print(f"----- Used model: {latest_filepath} -----")
-    print(f"----- Predicted trade {buy_sell_str} (previous close time {closing_time}) {buy_sell_array}) -----")
+    print(f"----- Predicted trade {color}{buy_sell_str}{bcolors.ENDC} (previous close time {closing_time}) {buy_sell_array}) -----")
 
     print(f"--- {round((time.time() - start_time), 1)}s trade roundtrip (pair: {pair}, interval: {interval}) ---")
 

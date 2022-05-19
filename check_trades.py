@@ -47,7 +47,7 @@ if __name__ == "__main__":
     print('correct_delta', correct_delta.round(decimals = 3), ":", correct_buys_sum.round(decimals = 3), correct_sells_sum.round(decimals = 3))
     print('incorrect_delta', incorrect_delta.round(decimals = 3), ":", incorrect_buys_sum.round(decimals = 3), incorrect_sells_sum.round(decimals = 3))
     print('overall_delta', overall_delta.round(decimals = 3))
-    # breakpoint()
+
     print(f"delta percentage {((overall_delta / reference_start_price) * 100).round(decimals = 3)}%")
     reference = ( ((predictions_df.iloc[0]["close"] - reference_start_price) / reference_start_price) * 100).round(decimals = 3)
     print(f"ref delta percentage {reference}% (without trading) ")

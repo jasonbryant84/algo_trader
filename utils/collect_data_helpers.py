@@ -17,12 +17,12 @@ def build_datasets(pair, interval, candle_lookback_length, use_sub_intervals, cl
 
     print('\nGenerating dataset(s)...')
     start_time = time.time()
-    [full_dataset, datasets] = helper.generate_datasets(use_sub_intervals)
+    full_dataset, datasets, sub_interval, sub_interval_unit = helper.generate_datasets(use_sub_intervals, use_for_prediction=True)
     print(f"--- {round((time.time() - start_time), 1)}s to generate dataset ---\n")
 
     print('noStorage', noStorage)
     if not noStorage:
         wrote_file = write_dataset_csvs(datasets, helper, cloudStorage)
-        return datasets, wrote_file
+        return datasets, wrote_file, sub_interval, sub_interval_unit
 
-    return datasets, None
+    return datasets, None, sub_interval, sub_interval_unit
